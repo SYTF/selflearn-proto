@@ -895,7 +895,7 @@
     <div>
       <button type="button" class="btn btn-ghost btn-sm mb8" data-go="/teacher">← Dashboard</button>
       <div class="h1">上架／編輯</div>
-      <div class="sec-sub">Notion-like · 輸入 <kbd>/</kbd> 插入區塊 · 拖曳／↑↓ 重排</div>
+      <div class="sec-sub">Notion-like · 區塊內或空行輸入 <kbd>/</kbd> 插入 · 拖曳／↑↓ 重排</div>
     </div>
     <div class="row gap8">
       <button type="button" class="btn btn-ghost btn-sm" id="btnSlash">／ Slash 選單</button>
@@ -904,7 +904,7 @@
   </div>
   <div class="callout mb12">
     <strong>建議實作：TipTap + Slash + Modal</strong>
-    <span class="small muted"> — 主路徑：輸入 <kbd>/</kbd> 插入。文字類型（標題／段落／清單／分隔線）即時成 block；小測／影片／圖片／生字開 <strong>modal</strong> 設定後確認，插入緊湊卡片。直接打字（唔使 /）→ 段落 block。工具列為次要。</span>
+    <span class="small muted"> — 主路徑：在標題／段落／清單內（行首或空白後）或底部空行輸入 <kbd>/</kbd> 開啟插入選單（過濾）。僅 <code>/query</code> 的行會被取代；否則新 block 插在下方。文字類型即時成 block；小測／影片／圖片／生字開 <strong>modal</strong>。直接打字（唔使 /）→ 段落。工具列為次要。</span>
   </div>
 
   <div class="editor-layout">

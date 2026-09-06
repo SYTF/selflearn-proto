@@ -137,9 +137,9 @@
   let currentPost = 'class';
   let assignSelected = new Map(); // id -> label
   let editorBlocks = null;
-  let slashState = { open: false, query: '', index: 0, replaceId: null, fromHint: false, anchorEl: null };
+  let slashState = { open: false, query: '', index: 0, replaceId: null, afterId: null, fromHint: false, anchorEl: null };
   let dragBlockId = null;
-  let insertModalState = { kind: null, replaceId: null, fromHint: false };
+  let insertModalState = { kind: null, replaceId: null, afterId: null, fromHint: false };
   const EDITOR_STORAGE_KEY = 'selflearn-proto-editor-blocks-v2';
   const SLASH_TYPES = ['h1', 'p', 'list', 'quiz', 'video', 'img', 'vocab', 'divider'];
   const MODAL_INSERT_TYPES = new Set(['quiz', 'video', 'img', 'vocab']);
@@ -621,6 +621,7 @@
     insertModalState = {
       kind,
       replaceId: opts.replaceId || null,
+      afterId: opts.afterId || null,
       fromHint: !!opts.fromHint
     };
     const modal = document.getElementById('insertModal');
@@ -639,7 +640,7 @@
   }
 
   function closeInsertModal() {
-    insertModalState = { kind: null, replaceId: null, fromHint: false };
+    insertModalState = { kind: null, replaceId: null, afterId: null, fromHint: false };
     document.getElementById('insertModal')?.setAttribute('hidden', '');
     document.getElementById('insertModalBg')?.setAttribute('hidden', '');
     const modal = document.getElementById('insertModal');
@@ -697,6 +698,7 @@
     const payload = collectModalPayload(kind);
     const opts = {
       replaceId: insertModalState.replaceId || null,
+      afterId: insertModalState.afterId || null,
       fromHint: insertModalState.fromHint,
       payload
     };
@@ -1035,7 +1037,13 @@
           else b.content = '';
           persistEditorState();
           const body = document.querySelector(`.block-row[data-id="${opts.replaceId}"] [data-block-body]`);
-          if (body) body.textContent = b.type === 'list' ? '' : '';
+          if (body) {
+            if (b.type === 'list') {
+              const li = body.querySelector('li');
+              if (li) li.textContent = '';
+              else body.textContent = '';
+            } else body.textContent = '';
+          }
         }
       }
       openInsertModal(t, opts);
@@ -1166,6 +1174,7 @@
     slashState.open = true;
     slashState.query = opts.query || '';
     slashState.replaceId = opts.replaceId || null;
+    slashState.afterId = opts.afterId || null;
     slashState.fromHint = !!opts.fromHint;
     if (opts.anchorEl) slashState.anchorEl = opts.anchorEl;
     filterSlashMenu(slashState.query);
@@ -1177,6 +1186,7 @@
     slashState.open = false;
     slashState.query = '';
     slashState.replaceId = null;
+    slashState.afterId = null;
     slashState.fromHint = false;
     slashState.anchorEl = null;
     const menu = document.getElementById('slashMenu');
@@ -1202,7 +1212,9 @@
     if (!item) return;
     const type = item.dataset.insert;
     const replaceId = slashState.replaceId;
+    const afterId = slashState.afterId;
     const fromHint = slashState.fromHint;
+    const query = slashState.query || '';
     closeSlashMenu();
     if (fromHint) {
       const hint = document.getElementById('editorAddHint');
@@ -1210,25 +1222,140 @@
       requestInsert(type, { fromHint: true });
     } else if (replaceId) {
       requestInsert(type, { replaceId });
+    } else if (afterId) {
+      stripSlashQueryFromBlock(afterId, query);
+      requestInsert(type, { afterId });
     } else {
       requestInsert(type);
     }
   }
 
-  function slashQueryFromText(text) {
-    const t = String(text || '')
+  function normalizeEditableText(text) {
+    return String(text || '')
       .replace(/\u00a0/g, ' ')
       .replace(/\u200b/g, '')
-      .replace(/\r/g, '')
-      .replace(/\n/g, '')
-      .trim();
+      .replace(/\r/g, '');
+  }
+
+  /** Whole-block / hint: content is only `/query` (legacy empty-line slash). */
+  function slashQueryFromText(text) {
+    const t = normalizeEditableText(text).replace(/\n/g, '').trim();
     const m = t.match(/^\/(.*)$/);
     return m ? (m[1] || '') : null;
   }
 
-  function detectSlashInEditable(el) {
+  function escapeRegExp(s) {
+    return String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /**
+   * Notion-like trigger: `/` at start of editable OR after whitespace.
+   * Mid-word `/` (e.g. http://) does not open the menu.
+   * Query = non-whitespace run after that `/` up to the caret.
+   */
+  function detectSlashAtCaret(el) {
     if (!el || !el.isContentEditable) return null;
-    return slashQueryFromText(el.textContent || '');
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    const node = sel.focusNode || sel.anchorNode;
+    if (!node || !el.contains(node)) return null;
+    const pre = document.createRange();
+    pre.selectNodeContents(el);
+    try {
+      pre.setEnd(sel.focusNode || sel.anchorNode, sel.focusOffset != null ? sel.focusOffset : sel.anchorOffset);
+    } catch (err) {
+      return null;
+    }
+    const before = normalizeEditableText(pre.toString());
+    // (^|whitespace)/query$  — avoids http:// and foo/bar
+    const m = before.match(/(^|[\s\u3000])\/([^\s]*)$/);
+    if (!m) return null;
+    const query = m[2] || '';
+    const all = normalizeEditableText(el.textContent || '').replace(/\n/g, ' ').trim();
+    const replaceWhole = all === '/' + query || /^\/[^\s]*$/.test(all);
+    return { query, replaceWhole };
+  }
+
+  /** Before `/` key inserts: caret at start or after whitespace? */
+  function caretAllowsSlashTrigger(el) {
+    if (!el || !el.isContentEditable) return false;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return !(el.textContent || '').replace(/\u200b/g, '').trim();
+    const node = sel.focusNode || sel.anchorNode;
+    if (!node || !el.contains(node)) return !(el.textContent || '').replace(/\u200b/g, '').trim();
+    const pre = document.createRange();
+    pre.selectNodeContents(el);
+    try {
+      pre.setEnd(sel.focusNode || sel.anchorNode, sel.focusOffset != null ? sel.focusOffset : sel.anchorOffset);
+    } catch (err) {
+      return true;
+    }
+    const before = normalizeEditableText(pre.toString());
+    if (!before.length) return true;
+    return /[\s\u3000]/.test(before.slice(-1));
+  }
+
+  function stripSlashToken(text, query) {
+    const t = normalizeEditableText(text);
+    const q = query || '';
+    const trimmed = t.replace(/\n/g, ' ').trim();
+    if (trimmed === '/' + q || /^\/[^\s]*$/.test(trimmed)) return '';
+    const reEnd = new RegExp('\\/' + escapeRegExp(q) + '\\s*$');
+    if (reEnd.test(t)) return t.replace(reEnd, '');
+    const reMid = new RegExp('(^|[\\s\\u3000])\\/' + escapeRegExp(q) + '(?=[\\s\\u3000]|$)');
+    return t.replace(reMid, '$1');
+  }
+
+  function stripSlashQueryFromBlock(id, query) {
+    const row = document.querySelector('.block-row[data-id="' + id + '"]');
+    const body = row && row.querySelector('[data-block-body]');
+    if (!body) return;
+    const q = query != null ? query : (slashState.query || '');
+    const sel = window.getSelection();
+    let target = null;
+    if (sel && sel.focusNode && body.contains(sel.focusNode)) {
+      const el = sel.focusNode.nodeType === 1 ? sel.focusNode : sel.focusNode.parentElement;
+      target = el && el.closest ? el.closest('li') : null;
+    }
+    if (target && body.contains(target)) {
+      target.textContent = stripSlashToken(target.textContent || '', q);
+      if (!(target.textContent || '').trim()) target.textContent = '清單項目';
+    } else if (body.querySelector('li')) {
+      const lis = [...body.querySelectorAll('li')];
+      const hit = lis.find(li => {
+        const t = normalizeEditableText(li.textContent || '').trim();
+        return t === '/' + q || t.includes('/' + q);
+      }) || lis[lis.length - 1];
+      if (hit) {
+        hit.textContent = stripSlashToken(hit.textContent || '', q);
+        if (!(hit.textContent || '').trim()) hit.textContent = '清單項目';
+      }
+    } else {
+      body.textContent = stripSlashToken(body.textContent || '', q);
+    }
+    syncBlockContentFromDom(id);
+  }
+
+  function openSlashFromEditable(body, row) {
+    const hit = detectSlashAtCaret(body);
+    if (!hit || !row) return false;
+    const id = row.dataset.id;
+    openSlashMenu({
+      query: hit.query,
+      replaceId: hit.replaceWhole ? id : null,
+      afterId: hit.replaceWhole ? null : id,
+      anchorEl: body
+    });
+    return true;
+  }
+
+  function detectSlashInEditable(el) {
+    // Back-compat name: caret-aware first, then whole-block `/query`
+    const hit = detectSlashAtCaret(el);
+    if (hit) return hit;
+    const q = slashQueryFromText(el && el.textContent);
+    if (q === null) return null;
+    return { query: q, replaceWhole: true };
   }
 
   /* —— events —— */
@@ -1502,10 +1629,15 @@
       const row = body.closest('.block-row');
       const id = row?.dataset.id;
       if (id) syncBlockContentFromDom(id);
-      const q = detectSlashInEditable(body);
-      if (q !== null) {
-        openSlashMenu({ query: q, replaceId: id, anchorEl: row || body });
-      } else if (slashState.open && slashState.replaceId === id) {
+      const hit = detectSlashInEditable(body);
+      if (hit) {
+        openSlashMenu({
+          query: hit.query,
+          replaceId: hit.replaceWhole ? id : null,
+          afterId: hit.replaceWhole ? null : id,
+          anchorEl: body
+        });
+      } else if (slashState.open && (slashState.replaceId === id || slashState.afterId === id)) {
         closeSlashMenu();
       }
       return;
@@ -1537,14 +1669,23 @@
       const vis = visibleSlashItems();
       if (e.key === 'Escape') {
         e.preventDefault();
-        // strip leading /query from current editable
+        // strip `/query` token from current editable (keep surrounding text)
         const body = e.target.closest('[data-block-body]');
         const hint = e.target.id === 'editorAddHint' ? e.target : null;
-        if (body && detectSlashInEditable(body) !== null) {
-          body.textContent = '';
-          syncBlockContentFromDom(body.closest('.block-row')?.dataset.id);
+        const row = body && body.closest('.block-row');
+        const q = slashState.query || '';
+        if (row && (slashState.replaceId === row.dataset.id || slashState.afterId === row.dataset.id)) {
+          if (slashState.replaceId) {
+            if (body.querySelector('li')) {
+              const li = body.querySelector('li');
+              if (li) li.textContent = '';
+            } else body.textContent = '';
+            syncBlockContentFromDom(row.dataset.id);
+          } else {
+            stripSlashQueryFromBlock(row.dataset.id, q);
+          }
         }
-        if (hint) hint.textContent = '';
+        if (hint && slashState.fromHint) hint.textContent = '';
         closeSlashMenu();
         return;
       }
@@ -1586,21 +1727,22 @@
       }
     }
 
-    // Start slash with `/` — open after browser inserts the character
+    // Start slash with `/` — Notion-like: empty line OR after whitespace inside a text block
     if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       const body = e.target.closest('[data-block-body]');
       const hint = e.target.id === 'editorAddHint' ? e.target : null;
       const row = body && body.closest('.block-row');
-      const canBody = !!(body && isEditableType(row && row.dataset.type) && !(body.textContent || '').trim());
-      const canHint = !!(hint && !(hint.textContent || '').replace(/\u200b/g, '').trim());
+      const canBody = !!(body && row && isEditableType(row.dataset.type) && caretAllowsSlashTrigger(body));
+      const canHint = !!(hint && caretAllowsSlashTrigger(hint));
       if (canBody || canHint) {
         requestAnimationFrame(function () {
-          if (canBody) {
-            const q = detectSlashInEditable(body);
-            if (q !== null) openSlashMenu({ query: q, replaceId: row.dataset.id, anchorEl: row });
-          } else if (canHint) {
-            const q = slashQueryFromText(hint.textContent || '');
-            if (q !== null) openSlashMenu({ query: q, fromHint: true, anchorEl: hint });
+          if (canBody) openSlashFromEditable(body, row);
+          else if (canHint) {
+            const hit = detectSlashAtCaret(hint) || (() => {
+              const q = slashQueryFromText(hint.textContent || '');
+              return q === null ? null : { query: q, replaceWhole: true };
+            })();
+            if (hit) openSlashMenu({ query: hit.query, fromHint: true, anchorEl: hint });
           }
         });
       }
