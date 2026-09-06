@@ -562,7 +562,7 @@
     <div>
       <div class="eyebrow">學習分析</div>
       <div class="h1">我的進度</div>
-      <div class="sec-sub">時間範圍 · 科目篩選 · 環形進度 · 趨勢 · 熱力日曆</div>
+      <div class="sec-sub">時間範圍 · 科目篩選 · 環形進度 · 趨勢 · GitHub 式貢獻圖</div>
     </div>
     <div class="chips" id="progRange">
       <button type="button" class="chip on" data-range="week">本週</button>
@@ -639,17 +639,8 @@
       <div class="small muted" id="trendHint">Hover 節點查看當日學習量</div>
     </div>
     <div class="card s7 card-pad">
-      <div class="between mb8"><span class="sec-title" style="margin:0">完成日曆</span><span class="small muted">顏色越深＝當日完成越多</span></div>
-      <div class="heatmap" id="calHeat"></div>
-      <div class="row mt8" style="align-items:center;gap:6px">
-        <span class="small muted">少</span>
-        <span class="hm-cell hm-0" style="width:12px;height:12px"></span>
-        <span class="hm-cell hm-1" style="width:12px;height:12px"></span>
-        <span class="hm-cell hm-2" style="width:12px;height:12px"></span>
-        <span class="hm-cell hm-3" style="width:12px;height:12px"></span>
-        <span class="hm-cell hm-4" style="width:12px;height:12px"></span>
-        <span class="small muted">多</span>
-      </div>
+      <div class="between mb8"><span class="sec-title" style="margin:0">學習貢獻圖</span><span class="small muted">GitHub 式 · 週×星期 · 綠階</span></div>
+      <div id="calHeat"></div>
     </div>
     <div class="card s5">
       <div style="display:grid;grid-template-columns:1.1fr 1fr;height:100%">
@@ -671,69 +662,117 @@
     <div>
       <div class="eyebrow">老師工作台</div>
       <div class="h1">Dashboard</div>
-      <div class="sec-sub">Dense overview · 指派與班報表快捷入口</div>
+      <div class="sec-sub">職務可兼任 · 切換後版面與能力明顯不同</div>
     </div>
     <div class="chips">
       <button type="button" class="btn btn-primary btn-sm" data-go="/assign">＋ 指派教材</button>
-      <button type="button" class="btn btn-ghost btn-sm" data-go="/report">班報表</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-go="/report">報表</button>
     </div>
   </div>
-  <div class="bento">
-    <div class="card s3 kpi">
-      <div class="t">待跟進學生</div>
-      <div class="kpi-row">
-        <div class="n" style="color:var(--aurora-r)">7</div>
-        <span class="spark-host" data-spark="3,4,5,6,5,7,7" data-color="#BF616A" data-fill="1"></span>
+
+  <div class="between mb12" style="flex-wrap:wrap;gap:10px">
+    <div>
+      <div class="small muted mb8" style="font-weight:700">職務切換</div>
+      <div class="post-switch" id="postSwitch">
+        <button type="button" class="post-btn active" data-post="class">班主任<span class="post-hint">本班</span></button>
+        <button type="button" class="post-btn" data-post="grade">級主任<span class="post-hint">P1–P6 級</span></button>
+        <button type="button" class="post-btn" data-post="subject">科主任<span class="post-hint">科目</span></button>
       </div>
-      <div class="small muted">未打開 ≥ 3 天 · <span class="delta up" style="color:var(--aurora-r)">↑ 風險</span></div>
     </div>
-    <div class="card s3 kpi">
-      <div class="t">本週完成率</div>
-      <div class="kpi-row">
-        <div class="n" style="color:var(--frost0)">64%</div>
-        <span class="spark-host" data-spark="48,52,55,58,60,62,64" data-color="#5E81AC" data-fill="1"></span>
+    <div class="post-banner" id="postBanner" style="flex:1;min-width:220px"></div>
+  </div>
+
+  <div class="bento mb12" id="teacherKpis"></div>
+
+  <!-- 班主任 panel -->
+  <div class="post-panel active" data-post="class">
+    <div class="bento">
+      <div class="card s7" style="display:grid;grid-template-columns:1.1fr 1fr">
+        <img src="img/teacher-analytics.jpg" alt="" style="height:100%;min-height:180px;object-fit:cover" />
+        <div class="card-pad">
+          <div class="sec-title">本班名冊 · 5A</div>
+          <p class="small muted mb12">僅本班 28 人 · 跟進未打開學生</p>
+          <div class="stack gap8">
+            <div class="between"><span>黃子軒</span><span class="badge badge-r">未打開 5 天</span></div>
+            <div class="between"><span>林凱婷</span><span class="badge badge-r">未打開 3 天</span></div>
+            <div class="between"><span>陳曉晴</span><span class="badge badge-g">已完成</span></div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm mt12" data-go="/report">開啟班報表 →</button>
+        </div>
       </div>
-      <div class="small muted">5A · English · <span class="delta up">+5pt</span></div>
-    </div>
-    <div class="card s3 kpi">
-      <div class="t">已指派教材</div>
-      <div class="kpi-row">
-        <div class="n">12</div>
-        <span class="spark-host" data-spark="6,7,8,9,10,11,12" data-color="#81A1C1" data-fill="1"></span>
+      <div class="card s5">
+        <img src="img/assign.jpg" alt="" style="height:100px;width:100%;object-fit:cover" />
+        <div class="card-pad">
+          <div class="sec-title">班主任快捷</div>
+          <div class="stack gap8 mt8">
+            <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/assign">📋 指派到本班／個別</button>
+            <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/report">📊 班進度報表</button>
+            <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/editor">✎ 上架教材</button>
+          </div>
+        </div>
       </div>
-      <div class="small muted">進行中 5 · 本週新增 3</div>
     </div>
-    <div class="card s3 kpi">
-      <div class="t">平均分數</div>
-      <div class="kpi-row">
-        <div class="n" style="color:var(--aurora-g)">81</div>
-        <span class="spark-host" data-spark="74,76,75,78,79,80,81" data-color="#A3BE8C" data-fill="1"></span>
+  </div>
+
+  <!-- 級主任 panel -->
+  <div class="post-panel" data-post="grade">
+    <div class="bento">
+      <div class="card s8 card-pad">
+        <div class="sec-title">五年級 · 各班進度</div>
+        <p class="small muted mb12">級主任可看全級班別，指派至本級各班</p>
+        <div class="table-wrap">
+          <table class="report">
+            <thead><tr><th>班別</th><th>人數</th><th>完成率</th><th>待跟進</th><th>趨勢</th></tr></thead>
+            <tbody>
+              <tr><td><strong>5A</strong></td><td>28</td><td>64%</td><td><span class="badge badge-y">7</span></td><td><span class="spark-host" data-spark="48,52,55,58,60,62,64" data-color="#5E81AC" data-fill="1" data-w="72" data-h="24"></span></td></tr>
+              <tr><td><strong>5B</strong></td><td>27</td><td>51%</td><td><span class="badge badge-r">11</span></td><td><span class="spark-host" data-spark="40,42,45,48,49,50,51" data-color="#BF616A" data-fill="1" data-w="72" data-h="24"></span></td></tr>
+              <tr><td><strong>5C</strong></td><td>29</td><td>57%</td><td><span class="badge badge-y">9</span></td><td><span class="spark-host" data-spark="44,46,50,52,54,55,57" data-color="#D08770" data-fill="1" data-w="72" data-h="24"></span></td></tr>
+              <tr><td><strong>5D</strong></td><td>28</td><td>61%</td><td><span class="badge badge-y">6</span></td><td><span class="spark-host" data-spark="50,52,54,56,58,59,61" data-color="#A3BE8C" data-fill="1" data-w="72" data-h="24"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="small muted">MC／小測 · 穩步上升</div>
+      <div class="card s4 card-pad">
+        <div class="sec-title">級主任能力</div>
+        <ul class="small muted mt8" style="padding-left:18px;line-height:1.8">
+          <li>全級班列表與進度對照</li>
+          <li>指派範圍預設「五年級／本級各班」</li>
+          <li>跨班跟進，不下鑽他級</li>
+        </ul>
+        <button type="button" class="btn btn-primary btn-sm mt12" data-go="/assign">指派至本級 →</button>
+        <button type="button" class="btn btn-outline btn-sm mt8" data-go="/report">開啟級報表 →</button>
+      </div>
     </div>
-    <div class="card s7" style="display:grid;grid-template-columns:1.1fr 1fr">
-      <img src="img/teacher-analytics.jpg" alt="" style="height:100%;min-height:180px;object-fit:cover" />
-      <div class="card-pad">
-        <div class="sec-title">班級速覽 · 5A</div>
-        <p class="small muted mb12">未打開優先排序已套用至班報表</p>
+  </div>
+
+  <!-- 科主任 panel -->
+  <div class="post-panel" data-post="subject">
+    <div class="bento">
+      <div class="card s7 card-pad">
+        <div class="sec-title">English 科 · 教材焦點</div>
+        <p class="small muted mb12">科主任管理科教材庫，可指派至任意班／級</p>
         <div class="stack gap8">
-          <div class="between"><span>English Unit 3</span><span class="badge badge-y">68% 完成</span></div>
-          <div class="progress-bar"><i style="width:68%"></i></div>
-          <div class="between"><span>常識 社區安全</span><span class="badge badge-r">41% 打開</span></div>
-          <div class="progress-bar"><i style="width:41%;background:var(--aurora-r)"></i></div>
+          <div class="between"><span>Unit 3 · Weather Words</span><span class="badge badge-g">已發佈</span></div>
+          <div class="progress-bar"><i style="width:72%"></i></div>
+          <div class="between"><span>Phonics · /th/ video</span><span class="badge badge-y">進行中上架</span></div>
+          <div class="progress-bar"><i style="width:40%;background:var(--aurora-y)"></i></div>
+          <div class="between"><span>P4 Shared Reading Pack</span><span class="badge badge-frost">草稿</span></div>
+          <div class="progress-bar"><i style="width:15%;background:var(--frost2)"></i></div>
         </div>
-        <button type="button" class="btn btn-outline btn-sm mt12" data-go="/report">開啟班報表 →</button>
+        <div class="row gap8 mt12">
+          <button type="button" class="btn btn-primary btn-sm" data-go="/editor">管理科教材 →</button>
+          <button type="button" class="btn btn-outline btn-sm" data-go="/assign">科教材指派 →</button>
+        </div>
       </div>
-    </div>
-    <div class="card s5">
-      <img src="img/assign.jpg" alt="" style="height:100px;width:100%;object-fit:cover" />
-      <div class="card-pad">
-        <div class="sec-title">快捷</div>
+      <div class="card s5 card-pad">
+        <div class="sec-title">跨班科報（摘要）</div>
         <div class="stack gap8 mt8">
-          <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/editor">✎ 上架／編輯教材</button>
-          <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/assign">📋 指派到班／級／個人</button>
-          <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/report">📊 班報表（互動）</button>
+          <div class="between"><span>P5 各班 Eng</span><span class="badge badge-frost">67%</span></div>
+          <div class="between"><span>P4 各班 Eng</span><span class="badge badge-frost">71%</span></div>
+          <div class="between"><span>P6 各班 Eng</span><span class="badge badge-y">59%</span></div>
         </div>
+        <p class="small muted mt12">可指派至任何班／級（不限本班）</p>
+        <button type="button" class="btn btn-ghost btn-sm mt8" data-go="/report">開啟科報表 →</button>
       </div>
     </div>
   </div>
@@ -745,24 +784,28 @@
     <div>
       <button type="button" class="btn btn-ghost btn-sm mb8" data-go="/teacher">← Dashboard</button>
       <div class="h1">指派教材</div>
-      <div class="sec-sub">班／級／個人 · 預設已指派清單可見</div>
+      <div class="sec-sub" id="assignPostHint">多選班／級／個別學生 · 依職務顯示不同選項</div>
     </div>
-    <img src="img/assign.jpg" alt="" style="width:120px;height:72px;border-radius:12px;object-fit:cover" />
+    <div class="post-switch" id="postSwitchAssign">
+      <button type="button" class="post-btn active" data-post="class">班主任</button>
+      <button type="button" class="post-btn" data-post="grade">級主任</button>
+      <button type="button" class="post-btn" data-post="subject">科主任</button>
+    </div>
   </div>
   <div class="bento mb12">
-    <div class="card s12" style="display:flex;gap:0;min-height:120px">
-      <img src="img/assign.jpg" alt="" style="width:36%;max-width:280px;object-fit:cover" />
+    <div class="card s12" style="display:flex;gap:0;min-height:100px">
+      <img src="img/assign.jpg" alt="" style="width:36%;max-width:240px;object-fit:cover" />
       <div class="card-pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
         <div class="eyebrow">指派流程</div>
-        <div class="h2">選教材 → 選範圍 → 設截止</div>
-        <p class="small muted mt8">學生端預設只見「已指派」內容，圖書館瀏覽需另開權限。</p>
+        <div class="h2">選教材 → 多選範圍 → 設截止</div>
+        <p class="small muted mt8">範圍改為<strong>多選 popover</strong>：可同時選成班、成年級、個別學生；已選以 chips 顯示。</p>
       </div>
     </div>
   </div>
   <div class="assign-grid">
     <div class="card card-pad">
       <div class="sec-title">選擇教材</div>
-      <div class="field mt8"><label>科目</label><select><option>English</option><option>中文</option><option>數學</option><option>常識</option></select></div>
+      <div class="field mt8"><label>科目</label><select id="assignSubjSel"><option>English</option><option>中文</option><option>數學</option><option>常識</option></select></div>
       <div class="field"><label>分類</label><select><option>生字 Vocab</option><option>閱讀</option><option>影片</option><option>小測</option></select></div>
       <div class="check-list">
         <label class="check-item"><input type="checkbox" checked /> Unit 3 · Weather Words</label>
@@ -772,27 +815,16 @@
       </div>
     </div>
     <div class="card card-pad">
-      <div class="sec-title">指派範圍</div>
-      <div class="chips mt8 mb12" id="assignScope">
-        <button type="button" class="chip on" data-scope="class">班</button>
-        <button type="button" class="chip" data-scope="year">級</button>
-        <button type="button" class="chip" data-scope="indiv">個人</button>
+      <div class="sec-title">指派範圍（多選）</div>
+      <p class="small muted mt8 mb8">P0：成班 · 成年級 · 個別學生 — 可同時勾選</p>
+      <div class="ms-wrap" id="msWrap">
+        <button type="button" class="ms-trigger" id="msTrigger">
+          <span id="msTriggerLabel">選擇班／級／學生…</span>
+          <span class="ms-chev">▾</span>
+        </button>
+        <div class="ms-popover" id="msPopover"></div>
       </div>
-      <div id="scopeClass"><div class="check-list">
-        <label class="check-item"><input type="checkbox" checked /> 5A（28 人）</label>
-        <label class="check-item"><input type="checkbox" /> 5B（27 人）</label>
-        <label class="check-item"><input type="checkbox" /> 5C（29 人）</label>
-      </div></div>
-      <div id="scopeYear" class="hidden"><div class="check-list">
-        <label class="check-item"><input type="checkbox" checked /> 五年級全級</label>
-        <label class="check-item"><input type="checkbox" /> 四年級全級</label>
-      </div></div>
-      <div id="scopeIndiv" class="hidden"><div class="check-list">
-        <label class="check-item"><input type="checkbox" checked /> 陳曉晴</label>
-        <label class="check-item"><input type="checkbox" checked /> 李梓朗</label>
-        <label class="check-item"><input type="checkbox" /> 黃子軒</label>
-        <label class="check-item"><input type="checkbox" /> 林凱婷</label>
-      </div></div>
+      <div class="ms-chips" id="msChips"></div>
       <div class="field mt12"><label>截止日期</label><input type="date" value="2026-09-12" /></div>
       <button type="button" class="btn btn-primary mt8" style="width:100%;justify-content:center" id="btnAssignConfirm">確認指派</button>
     </div>
@@ -804,13 +836,20 @@
   <div class="between mb12">
     <div>
       <button type="button" class="btn btn-ghost btn-sm mb8" data-go="/teacher">← Dashboard</button>
-      <div class="h1">班報表 · 5A</div>
-      <div class="sec-sub">預設排序：未打開優先 · 點列展開詳情 · sparkline</div>
+      <div class="h1" id="reportHeading">班報表 · 5A</div>
+      <div class="sec-sub" id="reportSub">本班名冊 · 未打開優先 · sparkline</div>
     </div>
-    <div class="chips" id="repRange">
-      <button type="button" class="chip on" data-range="week">本週</button>
-      <button type="button" class="chip" data-range="month">本月</button>
-      <button type="button" class="chip" data-range="term">學期</button>
+    <div class="stack gap8" style="align-items:flex-end">
+      <div class="post-switch">
+        <button type="button" class="post-btn active" data-post="class">班主任</button>
+        <button type="button" class="post-btn" data-post="grade">級主任</button>
+        <button type="button" class="post-btn" data-post="subject">科主任</button>
+      </div>
+      <div class="chips" id="repRange">
+        <button type="button" class="chip on" data-range="week">本週</button>
+        <button type="button" class="chip" data-range="month">本月</button>
+        <button type="button" class="chip" data-range="term">學期</button>
+      </div>
     </div>
   </div>
   <div class="chips mb12" id="repSubj">
@@ -856,17 +895,25 @@
     <div>
       <button type="button" class="btn btn-ghost btn-sm mb8" data-go="/teacher">← Dashboard</button>
       <div class="h1">上架／編輯</div>
-      <div class="sec-sub">Block editor mock · TipTap-like · slash 可插入區塊</div>
+      <div class="sec-sub">TipTap-like · 同頁附加小測／影片／生字（可發現）</div>
     </div>
     <div class="row gap8">
       <button type="button" class="btn btn-ghost btn-sm" id="btnSlash">／ Slash 選單</button>
       <button type="button" class="btn btn-primary btn-sm" id="btnPublish">發佈上架</button>
     </div>
   </div>
-  <div class="callout">
+  <div class="callout mb12">
     <strong>建議實作：TipTap</strong>
-    <span class="small muted"> — 以 TipTap（ProseMirror）作為生產編輯器：支援 slash commands、自訂 Node（生字 block／MC block／影片 embed）、協作與 JSON 儲存。側欄「附加小測」會讓學生在資源<strong>同頁</strong>看到「本課小測」。此頁為 UI mock，非真正 TipTap 實例。</span>
+    <span class="small muted"> — 自訂 Node（生字／MC／影片）。下方<strong>附加列</strong>示範如何加入資源：全部在<strong>同一編輯頁</strong>完成，學生會喺課件同一頁見到本課小測。</span>
   </div>
+
+  <div class="walk-steps" id="attachWalk">
+    <span class="walk-step">1 附加小測</span>
+    <span class="walk-step">2 上載影片</span>
+    <span class="walk-step">3 生字詞庫</span>
+    <span class="small muted" style="align-self:center">點工具列按鈕開啟同頁面板 ↓</span>
+  </div>
+
   <div class="editor-layout">
     <div class="editor-main">
       <div class="editor-toolbar">
@@ -878,13 +925,87 @@
         <button type="button" class="tb" data-tip="標題 H2">H2</button>
         <button type="button" class="tb" data-tip="段落">¶</button>
         <div class="tb-sep"></div>
-        <button type="button" class="tb" data-tip="圖片" onclick="document.querySelector('.slash-item[data-insert=img]').click()">🖼</button>
-        <button type="button" class="tb" data-tip="影片 embed" onclick="document.querySelector('.slash-item[data-insert=video]').click()">▶</button>
-        <button type="button" class="tb" data-tip="生字 block" onclick="document.querySelector('.slash-item[data-insert=vocab]').click()">Aa</button>
-        <button type="button" class="tb" data-tip="MC 題" onclick="document.querySelector('.slash-item[data-insert=mc]').click()">☑</button>
-        <div class="tb-sep"></div>
+        <button type="button" class="tb" data-tip="圖片" id="tbImg">🖼</button>
         <button type="button" class="tb" data-tip="Slash 選單" id="btnSlashTb">／</button>
       </div>
+
+      <div class="attach-bar" id="attachBar">
+        <button type="button" class="attach-btn" data-attach="quiz">☑ 附加小測</button>
+        <button type="button" class="attach-btn" data-attach="video">▶ 上載影片</button>
+        <button type="button" class="attach-btn" data-attach="vocab">Aa 生字詞庫</button>
+      </div>
+
+      <!-- Quiz attach panel (inline same page) -->
+      <div class="attach-panel" data-attach="quiz" id="panelQuiz">
+        <div class="attach-help"><strong>學生會喺課件同一頁見到本課小測</strong> — 唔使另開頁。可即場出題，或選用既有小測。</div>
+        <div class="chips mb12">
+          <button type="button" class="chip soft-on" id="quizModeCreate">即場出題</button>
+          <button type="button" class="chip" id="quizModePick">選用既有</button>
+        </div>
+        <div id="quizCreateBox" class="q-builder">
+          <div class="q-card">
+            <div class="between"><span class="q-type">MC 選擇題</span><span class="badge badge-frost">單選</span></div>
+            <div class="field mt8"><label>題幹</label><input value="Which word means「毛毛雨」？" /></div>
+            <div class="stack gap8">
+              <label class="check-item"><input type="radio" name="qa1" /> thunder</label>
+              <label class="check-item"><input type="radio" name="qa1" checked /> drizzle ✓</label>
+              <label class="check-item"><input type="radio" name="qa1" /> breeze</label>
+            </div>
+          </div>
+          <div class="q-card">
+            <div class="between"><span class="q-type">是非題 T/F</span></div>
+            <div class="field mt8"><label>題幹</label><input value="「humid」意思係潮濕。" /></div>
+            <div class="chips mt8">
+              <button type="button" class="chip soft-on">True</button>
+              <button type="button" class="chip">False</button>
+            </div>
+          </div>
+          <div class="q-card">
+            <div class="between"><span class="q-type">填充題</span></div>
+            <div class="field mt8"><label>題幹（用 ____ 表示空位）</label><input value="A light rain is called ____." /></div>
+            <div class="field"><label>答案</label><input value="drizzle" /></div>
+          </div>
+          <div class="row gap8">
+            <button type="button" class="btn btn-ghost btn-sm">＋ 再加一題</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnAttachQuizCreate">附加至本課</button>
+          </div>
+        </div>
+        <div id="quizPickBox" class="hidden">
+          <div class="check-list">
+            <label class="check-item"><input type="radio" name="pickq" checked /> Unit 3 Check（8 題）</label>
+            <label class="check-item"><input type="radio" name="pickq" /> Weather Words Quick Quiz</label>
+            <label class="check-item"><input type="radio" name="pickq" /> Phonics /th/ Exit Ticket</label>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm mt12" id="btnAttachQuizPick">選用並附加</button>
+        </div>
+        <div id="attachQuizPreview" class="hidden mt12">
+          <div class="badge badge-g">已附加 · 本課小測</div>
+          <p class="small muted mt8">預覽：學生開啟此資源時，小測嵌在頁面下方（見「文章+小測」示範）。</p>
+        </div>
+      </div>
+
+      <!-- Video attach panel -->
+      <div class="attach-panel" data-attach="video" id="panelVideo">
+        <div class="attach-help"><strong>上載或貼上影片 URL</strong> — 嵌在同一課件頁，學生唔使跳去另一個目的地。</div>
+        <div class="field"><label>上載影片檔</label><input type="file" accept="video/*" /></div>
+        <div class="field"><label>或 Embed URL</label><input placeholder="https://youtube.com/… 或校本串流連結" value="https://example.school/video/phonics-th" /></div>
+        <button type="button" class="btn btn-primary btn-sm" id="btnAttachVideo">附加影片至畫布</button>
+      </div>
+
+      <!-- Vocab attach panel -->
+      <div class="attach-panel" data-attach="vocab" id="panelVocab">
+        <div class="attach-help"><strong>生字詞庫／詞卡</strong> — 加喺同一頁；學生喺課件頁見到詞卡＋可附小測。</div>
+        <div id="vocabRows">
+          <div class="vocab-row"><input value="drizzle" /><input value="毛毛雨" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button></div>
+          <div class="vocab-row"><input value="forecast" /><input value="預報" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button></div>
+          <div class="vocab-row"><input value="humid" /><input value="潮濕" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button></div>
+        </div>
+        <div class="row gap8 mt8">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnAddVocabRow">＋ 加詞</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnAttachVocab">附加詞庫至畫布</button>
+        </div>
+      </div>
+
       <div class="editor-canvas" id="editorCanvas">
         <div class="slash-menu" id="slashMenu">
           <div class="small muted" style="padding:8px 12px;background:var(--snow0)">插入區塊</div>
@@ -901,42 +1022,23 @@
           <img src="img/subj-eng.jpg" alt="插圖" />
           <div class="small muted" style="padding:6px 10px;background:var(--snow0)">圖片 block · 插圖示範</div>
         </div>
-        <div class="block block-video">
-          <div style="width:56px;height:40px;border-radius:8px;background:var(--frost0);color:#fff;display:grid;place-items:center">▶</div>
-          <div><strong>影片 embed</strong><div class="small muted">Phonics · /th/ sounds · 04:32</div></div>
-        </div>
-        <div class="block block-vocab">
-          <div class="between"><strong>生字 block</strong><span class="badge badge-g">3 詞</span></div>
-          <div class="chips mt8">
-            <span class="chip soft-on">drizzle · 毛毛雨</span>
-            <span class="chip soft-on">forecast · 預報</span>
-            <span class="chip soft-on">humid · 潮濕</span>
-          </div>
-        </div>
-        <div class="block block-mc">
-          <div class="between"><strong>MC 題 block</strong><span class="badge badge-frost">單選</span></div>
-          <div class="mt8" style="font-weight:600">Which word means「毛毛雨」?</div>
-          <div class="mc-opt"><span>○</span> thunder</div>
-          <div class="mc-opt" style="border-color:var(--aurora-g);background:rgba(163,190,140,.12)"><span>●</span> drizzle</div>
-          <div class="mc-opt"><span>○</span> breeze</div>
-        </div>
-        <div class="block block-p muted small slash-hint">輸入 <kbd>/</kbd> 或點工具列／開啟 slash menu · 點選項目會<strong>插入</strong>假區塊</div>
+        <div class="block block-p muted small slash-hint">輸入 <kbd>/</kbd> 或點上方「附加小測／上載影片／生字詞庫」· 資源喺<strong>同一頁</strong>設定</div>
       </div>
     </div>
     <aside class="sidebar-ed">
       <div class="sec-title mb12">設定</div>
       <div class="field"><label>科目</label><select><option>English</option><option>中文</option><option>數學</option><option>常識</option></select></div>
       <div class="field"><label>分類</label><select><option>閱讀 Reading</option><option>生字 Vocab</option><option>影片</option><option>小測</option></select></div>
-      <div class="field"><label>附加小測</label>
-        <select id="attachQuizSel">
-          <option selected>附加 · 本課小測（學生同頁作答）</option>
-          <option>不附加</option>
-          <option>改為獨立小測教材</option>
-        </select>
-        <div class="small muted mt8">「附加」= 學生開啟文章／影片／生字時，小測嵌在<strong>同一頁</strong>下方，不另開導覽目的地。</div>
+      <div class="field"><label>附加狀態</label>
+        <div class="small muted">用上方附加列操作。側欄唔再藏喺單一 dropdown。</div>
+        <div class="stack gap8 mt8">
+          <span class="badge badge-y">小測：點「附加小測」</span>
+          <span class="badge badge-frost">影片：點「上載影片」</span>
+          <span class="badge badge-g">生字：點「生字詞庫」</span>
+        </div>
       </div>
       <div class="field"><label>指派範圍</label>
-        <select><option>班 · 5A</option><option>級 · 五年級</option><option>個人 · 多選</option><option>暫不上架（草稿）</option></select>
+        <select><option>稍後喺「指派」用多選</option><option>草稿不上架</option></select>
       </div>
       <div class="field"><label>可見性</label>
         <select><option>已指派可見</option><option>科目圖書館（需另開權限）</option></select>
@@ -955,9 +1057,15 @@
     <div>
       <div class="eyebrow">系統</div>
       <div class="h1">系統總覽</div>
-      <div class="sec-sub">全校用量 · KPI · 插圖帶</div>
+      <div class="sec-sub">全校用量 · KPI · 導向管理頁</div>
     </div>
-    <button type="button" class="btn btn-ghost btn-sm" data-go="/heatmap">使用熱力圖 →</button>
+  </div>
+  <div class="admin-subnav">
+    <button type="button" class="pchip active" data-admin-nav data-go="/admin">系統總覽</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/users">用戶管理</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/classes">班級／班別</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/subjects">科目</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/usage">使用量統計</button>
   </div>
   <div class="kpi-strip mb12">
     <img src="img/login-hero.jpg" alt="" />
@@ -1000,15 +1108,12 @@
       <div class="small muted">全校小測</div>
     </div>
     <div class="card s8 card-pad">
-      <div class="sec-title">科目用量（示範）</div>
-      <div class="chart-box" style="height:120px">
-        <svg viewBox="0 0 400 100" width="100%" height="100%">
-          <rect x="20" y="30" width="40" height="60" rx="6" fill="#BF616A"/><text x="40" y="95" text-anchor="middle" font-size="9" fill="#4C566A">中文</text>
-          <rect x="90" y="15" width="40" height="75" rx="6" fill="#5E81AC"/><text x="110" y="95" text-anchor="middle" font-size="9" fill="#4C566A">Eng</text>
-          <rect x="160" y="40" width="40" height="50" rx="6" fill="#A3BE8C"/><text x="180" y="95" text-anchor="middle" font-size="9" fill="#4C566A">數學</text>
-          <rect x="230" y="25" width="40" height="65" rx="6" fill="#B48EAD"/><text x="250" y="95" text-anchor="middle" font-size="9" fill="#4C566A">常識</text>
-          <rect x="300" y="50" width="40" height="40" rx="6" fill="#88C0D0"/><text x="320" y="95" text-anchor="middle" font-size="9" fill="#4C566A">其他</text>
-        </svg>
+      <div class="sec-title">快捷管理</div>
+      <div class="stack gap8 mt8">
+        <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/admin/users">👥 用戶管理（學生／老師／Admin · 職務）</button>
+        <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/admin/classes">🏫 班級／班別</button>
+        <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/admin/subjects">📚 科目（CRUD／排序／隱藏）</button>
+        <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/admin/usage">📈 系統使用量統計</button>
       </div>
     </div>
     <div class="card s4">
@@ -1021,13 +1126,119 @@
   </div>
 </section>
 
-<!-- ========== HEATMAP ========== -->
-<section class="page" id="pg-heatmap">
+<!-- ========== ADMIN USERS ========== -->
+<section class="page" id="pg-admin-users">
   <div class="between mb12">
     <div>
-      <button type="button" class="btn btn-ghost btn-sm mb8" data-go="/admin">← 系統總覽</button>
-      <div class="h1">使用熱力圖</div>
-      <div class="sec-sub">課室／時段用量 · 示範資料</div>
+      <div class="eyebrow">系統</div>
+      <div class="h1">用戶管理</div>
+      <div class="sec-sub">學生／老師／Admin · 角色與職務（班主任／級主任／科主任）</div>
+    </div>
+  </div>
+  <div class="admin-subnav">
+    <button type="button" class="pchip" data-admin-nav data-go="/admin">系統總覽</button>
+    <button type="button" class="pchip active" data-admin-nav data-go="/admin/users">用戶管理</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/classes">班級／班別</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/subjects">科目</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/usage">使用量統計</button>
+  </div>
+  <div class="user-tabs chips mb12" id="userTabs">
+    <button type="button" class="chip on" data-utab="students">學生</button>
+    <button type="button" class="chip" data-utab="teachers">老師</button>
+    <button type="button" class="chip" data-utab="admins">Admin</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="report" id="userTable">
+        <thead><tr><th>姓名</th><th>帳號</th><th>角色／職務</th><th>班／級／科</th><th>狀態</th></tr></thead>
+        <tbody id="userBody">
+          <tr data-utab-row="students"><td>陳曉晴</td><td>s24012</td><td>學生</td><td>5A</td><td><span class="badge badge-g">啟用</span></td></tr>
+          <tr data-utab-row="students"><td>黃子軒</td><td>s24018</td><td>學生</td><td>5A</td><td><span class="badge badge-g">啟用</span></td></tr>
+          <tr data-utab-row="students"><td>林凱婷</td><td>s24021</td><td>學生</td><td>5A</td><td><span class="badge badge-y">暫停</span></td></tr>
+          <tr data-utab-row="teachers" class="hidden"><td>王老師</td><td>t.wang</td><td>老師 · 班主任</td><td>5A</td><td><span class="badge badge-g">啟用</span></td></tr>
+          <tr data-utab-row="teachers" class="hidden"><td>李老師</td><td>t.lee</td><td>老師 · 級主任</td><td>五年級</td><td><span class="badge badge-g">啟用</span></td></tr>
+          <tr data-utab-row="teachers" class="hidden"><td>陳老師</td><td>t.chan</td><td>老師 · 科主任</td><td>English</td><td><span class="badge badge-g">啟用</span></td></tr>
+          <tr data-utab-row="teachers" class="hidden"><td>張老師</td><td>t.cheung</td><td>老師 · 班主任＋科主任</td><td>4B · 數學</td><td><span class="badge badge-frost">兼任</span></td></tr>
+          <tr data-utab-row="admins" class="hidden"><td>系統管理員</td><td>admin</td><td>Admin</td><td>—</td><td><span class="badge badge-g">啟用</span></td></tr>
+          <tr data-utab-row="admins" class="hidden"><td>IT 支援</td><td>it.support</td><td>Admin</td><td>—</td><td><span class="badge badge-g">啟用</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="small muted mt12">示範：老師可兼任多個非互斥職務（班主任／級主任／科主任）。</p>
+</section>
+
+<!-- ========== ADMIN CLASSES ========== -->
+<section class="page" id="pg-admin-classes">
+  <div class="between mb12">
+    <div>
+      <div class="eyebrow">系統</div>
+      <div class="h1">班級／班別</div>
+      <div class="sec-sub">年級 · 班別 · 人數 · 班主任</div>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" id="btnAddClass">＋ 新增班別</button>
+  </div>
+  <div class="admin-subnav">
+    <button type="button" class="pchip" data-admin-nav data-go="/admin">系統總覽</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/users">用戶管理</button>
+    <button type="button" class="pchip active" data-admin-nav data-go="/admin/classes">班級／班別</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/subjects">科目</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/usage">使用量統計</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="report">
+        <thead><tr><th>班別</th><th>年級</th><th>人數</th><th>班主任</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><strong>5A</strong></td><td>五年級</td><td>28</td><td>王老師</td><td><button type="button" class="btn btn-ghost btn-sm">編輯</button></td></tr>
+          <tr><td><strong>5B</strong></td><td>五年級</td><td>27</td><td>周老師</td><td><button type="button" class="btn btn-ghost btn-sm">編輯</button></td></tr>
+          <tr><td><strong>5C</strong></td><td>五年級</td><td>29</td><td>林老師</td><td><button type="button" class="btn btn-ghost btn-sm">編輯</button></td></tr>
+          <tr><td><strong>4A</strong></td><td>四年級</td><td>30</td><td>張老師</td><td><button type="button" class="btn btn-ghost btn-sm">編輯</button></td></tr>
+          <tr><td><strong>6C</strong></td><td>六年級</td><td>26</td><td>何老師</td><td><button type="button" class="btn btn-ghost btn-sm">編輯</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ========== ADMIN SUBJECTS ========== -->
+<section class="page" id="pg-admin-subjects">
+  <div class="between mb12">
+    <div>
+      <div class="eyebrow">系統</div>
+      <div class="h1">科目</div>
+      <div class="sec-sub">全校共用清單 · 新增／改名／隱藏／排序</div>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" id="btnAddSubj">＋ 新增科目</button>
+  </div>
+  <div class="admin-subnav">
+    <button type="button" class="pchip" data-admin-nav data-go="/admin">系統總覽</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/users">用戶管理</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/classes">班級／班別</button>
+    <button type="button" class="pchip active" data-admin-nav data-go="/admin/subjects">科目</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/usage">使用量統計</button>
+  </div>
+  <div class="card card-pad">
+    <div class="crud-toolbar">
+      <span class="small muted">拖曳把手示意排序（示範）· 隱藏後學生端不可見</span>
+    </div>
+    <div class="subj-list" id="subjList">
+      <div class="subj-item"><span class="handle">⠿</span><strong class="subj-name">中文</strong><span class="badge badge-frost">核心</span><span style="flex:1"></span><button type="button" class="btn btn-ghost btn-sm" data-subj-rename>改名</button><button type="button" class="btn btn-ghost btn-sm" data-subj-hide>隱藏</button></div>
+      <div class="subj-item"><span class="handle">⠿</span><strong class="subj-name">English</strong><span class="badge badge-frost">核心</span><span style="flex:1"></span><button type="button" class="btn btn-ghost btn-sm" data-subj-rename>改名</button><button type="button" class="btn btn-ghost btn-sm" data-subj-hide>隱藏</button></div>
+      <div class="subj-item"><span class="handle">⠿</span><strong class="subj-name">數學</strong><span class="badge badge-frost">核心</span><span style="flex:1"></span><button type="button" class="btn btn-ghost btn-sm" data-subj-rename>改名</button><button type="button" class="btn btn-ghost btn-sm" data-subj-hide>隱藏</button></div>
+      <div class="subj-item"><span class="handle">⠿</span><strong class="subj-name">常識</strong><span style="flex:1"></span><button type="button" class="btn btn-ghost btn-sm" data-subj-rename>改名</button><button type="button" class="btn btn-ghost btn-sm" data-subj-hide>隱藏</button></div>
+      <div class="subj-item"><span class="handle">⠿</span><strong class="subj-name">視覺藝術</strong><span style="flex:1"></span><button type="button" class="btn btn-ghost btn-sm" data-subj-rename>改名</button><button type="button" class="btn btn-ghost btn-sm" data-subj-hide>隱藏</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== ADMIN USAGE (was heatmap) ========== -->
+<section class="page" id="pg-admin-usage">
+  <div class="between mb12">
+    <div>
+      <div class="eyebrow">系統</div>
+      <div class="h1">系統使用量統計</div>
+      <div class="sec-sub">活躍用戶 · GitHub 式貢獻圖 · 課室用量</div>
     </div>
     <div class="chips" id="heatRange">
       <button type="button" class="chip on" data-range="week">本週</button>
@@ -1035,10 +1246,27 @@
       <button type="button" class="chip" data-range="term">學期</button>
     </div>
   </div>
+  <div class="admin-subnav">
+    <button type="button" class="pchip" data-admin-nav data-go="/admin">系統總覽</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/users">用戶管理</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/classes">班級／班別</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/subjects">科目</button>
+    <button type="button" class="pchip active" data-admin-nav data-go="/admin/usage">使用量統計</button>
+  </div>
+  <div class="stat-grid mb12">
+    <div class="card kpi"><div class="t">DAU</div><div class="n">412</div><div class="small muted">今日活躍</div></div>
+    <div class="card kpi"><div class="t">WAU</div><div class="n">612</div><div class="small muted">近 7 日</div></div>
+    <div class="card kpi"><div class="t">教材開啟</div><div class="n">3.2k</div><div class="small muted">本週</div></div>
+    <div class="card kpi"><div class="t">小測提交</div><div class="n">890</div><div class="small muted">本週</div></div>
+  </div>
   <div class="bento">
+    <div class="card s12 card-pad">
+      <div class="between mb8"><span class="sec-title" style="margin:0">全校活躍貢獻圖</span><span class="small muted" id="heatLbl">本週</span></div>
+      <div id="usageContrib"></div>
+    </div>
     <div class="card s8 card-pad">
-      <div class="between mb8"><span class="sec-title" style="margin:0">課室用量</span><span class="small muted" id="heatLbl">本週</span></div>
-      <div style="display:grid;grid-template-columns:80px repeat(5,1fr);gap:4px;font-size:11px" id="roomHeat"></div>
+      <div class="sec-title">課室用量</div>
+      <div class="mt8" style="display:grid;grid-template-columns:80px repeat(5,1fr);gap:4px;font-size:11px" id="roomHeat"></div>
     </div>
     <div class="card s4">
       <img src="img/progress.jpg" alt="" style="height:120px;width:100%;object-fit:cover" />

@@ -13,12 +13,104 @@
     teacher: [
       { route: '/teacher', label: 'Dashboard' },
       { route: '/assign', label: '指派' },
-      { route: '/report', label: '班報表' },
+      { route: '/report', label: '報表' },
       { route: '/editor', label: '上架／編輯' }
     ],
     admin: [
       { route: '/admin', label: '系統總覽' },
-      { route: '/heatmap', label: '熱力圖' }
+      { route: '/admin/users', label: '用戶管理' },
+      { route: '/admin/classes', label: '班級' },
+      { route: '/admin/subjects', label: '科目' },
+      { route: '/admin/usage', label: '使用量' }
+    ]
+  };
+
+  const TEACHER_POSTS = {
+    class: {
+      id: 'class',
+      label: '班主任',
+      scope: '5A 本班',
+      navHint: '本班名冊 · 班進度 · 班指派',
+      kpis: [
+        { t: '待跟進學生', n: '7', color: 'var(--aurora-r)', spark: '3,4,5,6,5,7,7', sc: '#BF616A', sub: '5A · 未打開 ≥ 3 天' },
+        { t: '本班完成率', n: '64%', color: 'var(--frost0)', spark: '48,52,55,58,60,62,64', sc: '#5E81AC', sub: '5A · English · +5pt' },
+        { t: '已指派（本班）', n: '12', color: '', spark: '6,7,8,9,10,11,12', sc: '#81A1C1', sub: '進行中 5 · 本週新增 3' },
+        { t: '本班平均分', n: '81', color: 'var(--aurora-g)', spark: '74,76,75,78,79,80,81', sc: '#A3BE8C', sub: 'MC／小測' }
+      ],
+      reportTitle: '班報表 · 5A',
+      assignDefault: 'class'
+    },
+    grade: {
+      id: 'grade',
+      label: '級主任',
+      scope: '五年級 P5',
+      navHint: '全級各班 · 級進度 · 級指派',
+      kpis: [
+        { t: '級內待跟進班', n: '3', color: 'var(--aurora-r)', spark: '1,1,2,2,3,2,3', sc: '#BF616A', sub: '5B／5C 完成率偏低' },
+        { t: '全級完成率', n: '58%', color: 'var(--frost0)', spark: '45,48,50,52,55,56,58', sc: '#5E81AC', sub: '5A–5D · 4 班' },
+        { t: '級內已指派', n: '28', color: '', spark: '18,20,22,24,25,27,28', sc: '#81A1C1', sub: '跨班教材 9 份' },
+        { t: '全級平均分', n: '76', color: 'var(--aurora-g)', spark: '70,71,72,73,74,75,76', sc: '#A3BE8C', sub: '各班比較' }
+      ],
+      reportTitle: '級報表 · 五年級',
+      assignDefault: 'grade'
+    },
+    subject: {
+      id: 'subject',
+      label: '科主任',
+      scope: 'English 科',
+      navHint: '科教材 · 跨班科報 · 科指派',
+      kpis: [
+        { t: '科教材庫', n: '46', color: 'var(--frost0)', spark: '30,34,38,40,42,44,46', sc: '#5E81AC', sub: 'English · 已發佈' },
+        { t: '科完成率（全校）', n: '67%', color: 'var(--frost0)', spark: '55,58,60,62,64,65,67', sc: '#88C0D0', sub: 'P1–P6 有指派班' },
+        { t: '待審／草稿', n: '5', color: 'var(--aurora-o)', spark: '8,7,6,6,5,5,5', sc: '#D08770', sub: '科組共享' },
+        { t: '科平均分', n: '79', color: 'var(--aurora-g)', spark: '72,74,75,76,77,78,79', sc: '#A3BE8C', sub: '跨班小測' }
+      ],
+      reportTitle: '科報表 · English',
+      assignDefault: 'subject'
+    }
+  };
+
+  const ASSIGN_OPTIONS = {
+    class: [
+      { group: '成班', items: [{ id: 'c-5a', label: '5A（本班 · 28 人）', checked: true }] },
+      { group: '個別學生（本班）', items: [
+        { id: 's-chen', label: '陳曉晴' },
+        { id: 's-li', label: '李梓朗' },
+        { id: 's-wong', label: '黃子軒' },
+        { id: 's-lam', label: '林凱婷' }
+      ]}
+    ],
+    grade: [
+      { group: '成年級', items: [{ id: 'g-p5', label: '五年級全級', checked: true }] },
+      { group: '成班（本級）', items: [
+        { id: 'c-5a', label: '5A（28 人）', checked: true },
+        { id: 'c-5b', label: '5B（27 人）' },
+        { id: 'c-5c', label: '5C（29 人）' },
+        { id: 'c-5d', label: '5D（28 人）' }
+      ]},
+      { group: '個別學生', items: [
+        { id: 's-chen', label: '陳曉晴 · 5A' },
+        { id: 's-wong', label: '黃子軒 · 5A' },
+        { id: 's-ng', label: '吳嘉欣 · 5B' }
+      ]}
+    ],
+    subject: [
+      { group: '成年級', items: [
+        { id: 'g-p4', label: '四年級' },
+        { id: 'g-p5', label: '五年級', checked: true },
+        { id: 'g-p6', label: '六年級' }
+      ]},
+      { group: '成班（任意）', items: [
+        { id: 'c-4a', label: '4A' },
+        { id: 'c-5a', label: '5A', checked: true },
+        { id: 'c-5b', label: '5B' },
+        { id: 'c-6c', label: '6C' }
+      ]},
+      { group: '個別學生', items: [
+        { id: 's-chen', label: '陳曉晴 · 5A' },
+        { id: 's-li', label: '李梓朗 · 5A' },
+        { id: 's-ho', label: '何俊傑 · 6C' }
+      ]}
     ]
   };
 
@@ -42,6 +134,9 @@
   let currentRole = 'student';
   let currentRoute = '/login';
   let forceEmpty = false;
+  let currentPost = 'class';
+  let assignSelected = new Map(); // id -> label
+  let attachOpen = null;
 
   function parseHash() {
     const raw = (location.hash || '#/login').replace(/^#/, '') || '/login';
@@ -74,14 +169,17 @@
     if (route === '/assign') return 'assign';
     if (route === '/report') return 'report';
     if (route === '/editor') return 'editor';
-    if (route === '/admin') return 'admin';
-    if (route === '/heatmap') return 'heatmap';
+    if (route === '/admin' || route === '/admin/') return 'admin';
+    if (route === '/admin/users') return 'admin-users';
+    if (route === '/admin/classes') return 'admin-classes';
+    if (route === '/admin/subjects') return 'admin-subjects';
+    if (route === '/admin/usage' || route === '/heatmap') return 'admin-usage';
     return 'login';
   }
 
   function roleForRoute(route) {
     if (['/teacher', '/assign', '/report', '/editor'].some(p => route === p || route.startsWith(p))) return 'teacher';
-    if (route === '/admin' || route === '/heatmap') return 'admin';
+    if (route === '/admin' || route.startsWith('/admin/') || route === '/heatmap') return 'admin';
     if (route === '/login') return currentRole;
     return 'student';
   }
@@ -117,18 +215,33 @@
 
     if (pageId === 'progress') {
       updateProgress(document.querySelector('#progRange .chip.on')?.dataset.range || 'week');
-      buildCal();
+      buildContribGraph('calHeat', { weeks: 16, seed: 11 });
+    }
+    if (pageId === 'teacher') {
+      applyTeacherPost(currentPost);
+    }
+    if (pageId === 'assign') {
+      renderAssignScope(currentPost);
     }
     if (pageId === 'report') {
+      applyTeacherPost(currentPost, { reportOnly: true });
       renderReport(document.querySelector('#repRange .chip.on')?.dataset.range || 'week');
-      buildClassHeat();
+      buildContribGraph('classHeat', { weeks: 12, seed: 22, title: '近 12 週完成量' });
     }
-    if (pageId === 'heatmap') {
+    if (pageId === 'editor') {
+      syncAttachWalk();
+    }
+    if (pageId === 'admin-usage') {
+      buildContribGraph('usageContrib', { weeks: 26, seed: 7, title: '全校活躍（GitHub 式）' });
       buildRoomHeat(document.querySelector('#heatRange .chip.on')?.dataset.range || 'week');
     }
     if (pageId === 'subject') {
       applySubjectFilters();
     }
+    // admin subnav highlight
+    document.querySelectorAll('[data-admin-nav]').forEach(a => {
+      a.classList.toggle('active', a.getAttribute('data-go') === route || (route === '/heatmap' && a.getAttribute('data-go') === '/admin/usage'));
+    });
     window.scrollTo(0, 0);
   }
 
@@ -138,6 +251,9 @@
       .map(i => {
         const active =
           currentRoute === i.route ||
+          (i.route === '/admin' && currentRoute === '/admin') ||
+          (i.route.startsWith('/admin/') && currentRoute === i.route) ||
+          (i.route === '/admin/usage' && currentRoute === '/heatmap') ||
           (i.route.startsWith('/subject') && currentRoute.startsWith('/subject')) ||
           (i.route.startsWith('/article') && currentRoute.startsWith('/article')) ||
           (i.route.startsWith('/video') && currentRoute.startsWith('/video')) ||
@@ -257,12 +373,178 @@
       'Hover 節點查看當日學習量 · ' + { week: '本週', month: '本月', term: '學期' }[range];
   }
 
-  function buildCal() {
-    const el = document.getElementById('calHeat');
-    const levels = [0, 1, 0, 2, 3, 1, 4, 2, 0, 1, 3, 4, 2, 1, 0, 2, 3, 1, 0, 4, 2, 3, 1, 2, 0, 1, 3, 4];
-    el.innerHTML = levels
-      .map((lv, i) => `<div class="hm-cell hm-${lv}" data-tip="Day ${i + 1}: ${lv * 2} 份完成"></div>`)
-      .join('');
+  function seededLevel(seed, i) {
+    const x = Math.sin((seed + i) * 12.9898) * 43758.5453;
+    const r = x - Math.floor(x);
+    if (r < 0.28) return 0;
+    if (r < 0.48) return 1;
+    if (r < 0.68) return 2;
+    if (r < 0.86) return 3;
+    return 4;
+  }
+
+  function buildContribGraph(elId, opts) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    opts = opts || {};
+    const weeks = opts.weeks || 16;
+    const seed = opts.seed || 1;
+    const yLabels = ['日', '一', '二', '三', '四', '五', '六'];
+    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    // end on a Saturday-ish demo date relative to Sep 2026
+    const end = new Date(2026, 8, 5); // Sep 5 2026 (Sat)
+    const start = new Date(end);
+    start.setDate(end.getDate() - (weeks * 7 - 1));
+    // align start to Sunday
+    start.setDate(start.getDate() - start.getDay());
+
+    const monthCells = [];
+    let lastMonth = -1;
+    for (let w = 0; w < weeks; w++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + w * 7);
+      const m = d.getMonth();
+      if (m !== lastMonth) {
+        monthCells.push(`<span style="grid-column:${w + 1}">${monthNames[m]}</span>`);
+        lastMonth = m;
+      } else {
+        monthCells.push(`<span></span>`);
+      }
+    }
+
+    let weeksHtml = '';
+    let cellIdx = 0;
+    for (let w = 0; w < weeks; w++) {
+      weeksHtml += '<div class="contrib-week">';
+      for (let dow = 0; dow < 7; dow++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + w * 7 + dow);
+        const future = d > end;
+        const lv = future ? 0 : seededLevel(seed, cellIdx);
+        const count = future ? 0 : lv * 2 + (lv ? 1 : 0);
+        const tip = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}：${count} 次活動`;
+        weeksHtml += `<div class="contrib-cell contrib-${lv}" data-tip="${tip}" title="${tip}"></div>`;
+        cellIdx++;
+      }
+      weeksHtml += '</div>';
+    }
+
+    const title = opts.title ? `<div class="contrib-title">${opts.title}</div>` : '';
+    el.className = 'contrib-wrap';
+    el.innerHTML = `${title}<div class="contrib-graph">
+      <div class="contrib-months"><div></div><div class="contrib-months-row">${monthCells.join('')}</div></div>
+      <div class="contrib-body">
+        <div class="contrib-ydays">${yLabels.map(l => `<span>${l}</span>`).join('')}</div>
+        <div class="contrib-weeks">${weeksHtml}</div>
+      </div>
+      <div class="contrib-legend">
+        <span>少</span>
+        <span class="contrib-cell contrib-0"></span>
+        <span class="contrib-cell contrib-1"></span>
+        <span class="contrib-cell contrib-2"></span>
+        <span class="contrib-cell contrib-3"></span>
+        <span class="contrib-cell contrib-4"></span>
+        <span>多</span>
+      </div>
+    </div>`;
+  }
+
+  function applyTeacherPost(postId, opts) {
+    opts = opts || {};
+    currentPost = postId in TEACHER_POSTS ? postId : 'class';
+    const post = TEACHER_POSTS[currentPost];
+    document.querySelectorAll('.post-btn').forEach(b => b.classList.toggle('active', b.dataset.post === currentPost));
+    document.querySelectorAll('.post-panel').forEach(p => p.classList.toggle('active', p.dataset.post === currentPost));
+    const banner = document.getElementById('postBanner');
+    if (banner) {
+      banner.innerHTML = `<span class="post-tag">${post.label}</span><span class="small muted">${post.scope} · ${post.navHint}</span><span class="badge badge-frost">職務切換示範</span>`;
+    }
+    const kpiHost = document.getElementById('teacherKpis');
+    if (kpiHost && !opts.reportOnly) {
+      kpiHost.innerHTML = post.kpis.map(k => `
+        <div class="card s3 kpi">
+          <div class="t">${k.t}</div>
+          <div class="kpi-row">
+            <div class="n"${k.color ? ` style="color:${k.color}"` : ''}>${k.n}</div>
+            <span class="spark-host" data-spark="${k.spark}" data-color="${k.sc}" data-fill="1"></span>
+          </div>
+          <div class="small muted">${k.sub}</div>
+        </div>`).join('');
+      hydrateSparks(kpiHost);
+    }
+    const repH = document.getElementById('reportHeading');
+    if (repH) repH.textContent = post.reportTitle;
+    const repSub = document.getElementById('reportSub');
+    if (repSub) {
+      repSub.textContent = currentPost === 'class'
+        ? '本班名冊 · 未打開優先 · sparkline'
+        : currentPost === 'grade'
+          ? '全級各班彙整 · 可下鑽班別'
+          : 'English 科跨班／跨級 · 教材維度';
+    }
+    // show/hide report table modes
+    document.getElementById('reportGradeBlock')?.classList.toggle('hidden', currentPost !== 'grade');
+    document.getElementById('reportSubjectBlock')?.classList.toggle('hidden', currentPost !== 'subject');
+    // hydrate sparks inside visible post panels
+    document.querySelectorAll('.post-panel.active').forEach(p => hydrateSparks(p));
+  }
+
+  function renderAssignScope(postId) {
+    const post = TEACHER_POSTS[postId] || TEACHER_POSTS.class;
+    const groups = ASSIGN_OPTIONS[postId] || ASSIGN_OPTIONS.class;
+    const hint = document.getElementById('assignPostHint');
+    if (hint) hint.textContent = `${post.label}可視範圍：${post.scope}（成班／成年級／個別學生可多選）`;
+    const pop = document.getElementById('msPopover');
+    if (!pop) return;
+    // seed selection once per post switch if empty or post changed
+    if (!renderAssignScope._post || renderAssignScope._post !== postId) {
+      assignSelected.clear();
+      groups.forEach(g => g.items.forEach(it => { if (it.checked) assignSelected.set(it.id, it.label); }));
+      renderAssignScope._post = postId;
+    }
+    let html = '';
+    groups.forEach(g => {
+      html += `<div class="ms-sec">${g.group}</div>`;
+      g.items.forEach(it => {
+        const on = assignSelected.has(it.id);
+        html += `<label class="ms-opt"><input type="checkbox" data-ms-id="${it.id}" data-ms-label="${it.label}" ${on ? 'checked' : ''}/> ${it.label}</label>`;
+      });
+    });
+    html += `<div class="ms-foot"><button type="button" class="btn btn-ghost btn-sm" id="msClear">清除</button><button type="button" class="btn btn-primary btn-sm" id="msDone">完成</button></div>`;
+    pop.innerHTML = html;
+    syncAssignChips();
+  }
+
+  function syncAssignChips() {
+    const host = document.getElementById('msChips');
+    if (!host) return;
+    if (!assignSelected.size) {
+      host.innerHTML = '<div class="ms-empty">尚未選擇指派對象 — 點上方開啟多選</div>';
+    } else {
+      host.innerHTML = [...assignSelected.entries()].map(([id, label]) =>
+        `<span class="ms-chip">${label}<button type="button" data-ms-remove="${id}" aria-label="移除">×</button></span>`
+      ).join('');
+    }
+    const trig = document.getElementById('msTriggerLabel');
+    if (trig) trig.textContent = assignSelected.size ? `已選 ${assignSelected.size} 個對象` : '選擇班／級／學生…';
+  }
+
+  function syncAttachWalk() {
+    const steps = document.querySelectorAll('#attachWalk .walk-step');
+    const map = { quiz: 0, video: 1, vocab: 2 };
+    steps.forEach((s, i) => {
+      s.classList.remove('on', 'done');
+      if (attachOpen && map[attachOpen] === i) s.classList.add('on');
+      else if (attachOpen && map[attachOpen] > i) s.classList.add('done');
+    });
+  }
+
+  function openAttach(kind) {
+    attachOpen = attachOpen === kind ? null : kind;
+    document.querySelectorAll('.attach-btn').forEach(b => b.classList.toggle('on', b.dataset.attach === attachOpen));
+    document.querySelectorAll('.attach-panel').forEach(p => p.classList.toggle('open', p.dataset.attach === attachOpen));
+    syncAttachWalk();
+    if (attachOpen) toast('附加面板：' + { quiz: '小測', video: '影片', vocab: '生字詞庫' }[attachOpen]);
   }
 
   function sparkSVG(arr, opts) {
@@ -367,14 +649,6 @@
   function closeDrawer() {
     document.getElementById('drawer').classList.remove('open');
     document.getElementById('drawerBg').classList.remove('open');
-  }
-
-  function buildClassHeat() {
-    const el = document.getElementById('classHeat');
-    const lv = [1, 2, 3, 4, 2, 1, 0];
-    el.innerHTML = lv
-      .map((v, i) => `<div class="hm-cell hm-${v}" data-tip="週${'一二三四五六日'[i]}: ${v * 8} 人次"></div>`)
-      .join('');
   }
 
   function buildRoomHeat(range) {
@@ -490,13 +764,156 @@
   wireChips('#progSubj');
   wireChips('#repRange', c => renderReport(c.dataset.range));
   wireChips('#repSubj');
-  wireChips('#heatRange', c => buildRoomHeat(c.dataset.range));
-  wireChips('#assignScope', c => {
-    ['class', 'year', 'indiv'].forEach(s => {
-      const el = document.getElementById('scope' + s.charAt(0).toUpperCase() + s.slice(1));
-      if (el) el.classList.toggle('hidden', s !== c.dataset.scope);
+  wireChips('#heatRange', c => {
+    buildRoomHeat(c.dataset.range);
+    buildContribGraph('usageContrib', { weeks: 26, seed: c.dataset.range === 'term' ? 9 : c.dataset.range === 'month' ? 5 : 7, title: '全校活躍（GitHub 式）' });
+  });
+  // teacher post switch (any .post-switch)
+  document.body.addEventListener('click', e => {
+    const btn = e.target.closest('.post-switch .post-btn');
+    if (!btn) return;
+    applyTeacherPost(btn.dataset.post);
+    document.querySelectorAll('.post-switch .post-btn').forEach(b => b.classList.toggle('active', b.dataset.post === currentPost));
+    if (pageIdFromRoute(currentRoute) === 'assign' || currentRoute === '/assign') renderAssignScope(currentPost);
+    if (pageIdFromRoute(currentRoute) === 'report' || currentRoute === '/report') {
+      renderReport(document.querySelector('#repRange .chip.on')?.dataset.range || 'week');
+      buildContribGraph('classHeat', { weeks: 12, seed: currentPost === 'grade' ? 33 : currentPost === 'subject' ? 44 : 22, title: '近 12 週完成量' });
+    }
+    toast('已切換職務：' + TEACHER_POSTS[currentPost].label);
+  });
+
+  // quiz create vs pick
+  document.getElementById('quizModeCreate')?.addEventListener('click', () => {
+    document.getElementById('quizModeCreate')?.classList.add('soft-on');
+    document.getElementById('quizModePick')?.classList.remove('soft-on', 'on');
+    document.getElementById('quizCreateBox')?.classList.remove('hidden');
+    document.getElementById('quizPickBox')?.classList.add('hidden');
+  });
+  document.getElementById('quizModePick')?.addEventListener('click', () => {
+    document.getElementById('quizModePick')?.classList.add('soft-on');
+    document.getElementById('quizModeCreate')?.classList.remove('soft-on', 'on');
+    document.getElementById('quizCreateBox')?.classList.add('hidden');
+    document.getElementById('quizPickBox')?.classList.remove('hidden');
+  });
+
+  document.getElementById('tbImg')?.addEventListener('click', () => insertBlock('img'));
+
+  // admin user tabs
+  document.getElementById('userTabs')?.addEventListener('click', e => {
+    const c = e.target.closest('.chip');
+    if (!c) return;
+    document.querySelectorAll('#userTabs .chip').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    const tab = c.dataset.utab;
+    document.querySelectorAll('#userBody tr').forEach(tr => {
+      tr.classList.toggle('hidden', tr.dataset.utabRow !== tab);
     });
   });
+
+  document.getElementById('btnAddClass')?.addEventListener('click', () => toast('新增班別（示範）'));
+
+  // multi-select popover
+  document.getElementById('msTrigger')?.addEventListener('click', e => {
+    e.stopPropagation();
+    const pop = document.getElementById('msPopover');
+    const trig = document.getElementById('msTrigger');
+    const open = !pop.classList.contains('open');
+    pop.classList.toggle('open', open);
+    trig.classList.toggle('open', open);
+  });
+  document.getElementById('msPopover')?.addEventListener('click', e => {
+    e.stopPropagation();
+    if (e.target.id === 'msClear') {
+      assignSelected.clear();
+      renderAssignScope(currentPost);
+      return;
+    }
+    if (e.target.id === 'msDone') {
+      document.getElementById('msPopover')?.classList.remove('open');
+      document.getElementById('msTrigger')?.classList.remove('open');
+      toast('已更新指派對象（' + assignSelected.size + '）');
+      return;
+    }
+    const inp = e.target.closest('input[data-ms-id]');
+    if (inp) {
+      if (inp.checked) assignSelected.set(inp.dataset.msId, inp.dataset.msLabel);
+      else assignSelected.delete(inp.dataset.msId);
+      syncAssignChips();
+    }
+  });
+  document.getElementById('msChips')?.addEventListener('click', e => {
+    const rm = e.target.closest('[data-ms-remove]');
+    if (!rm) return;
+    assignSelected.delete(rm.dataset.msRemove);
+    renderAssignScope(currentPost);
+  });
+  document.addEventListener('click', () => {
+    document.getElementById('msPopover')?.classList.remove('open');
+    document.getElementById('msTrigger')?.classList.remove('open');
+  });
+
+  // editor attach bar
+  document.getElementById('attachBar')?.addEventListener('click', e => {
+    const btn = e.target.closest('.attach-btn');
+    if (!btn) return;
+    openAttach(btn.dataset.attach);
+  });
+  document.getElementById('btnAttachQuizCreate')?.addEventListener('click', () => {
+    toast('已在本頁建立小測題（示範）· 學生同頁作答');
+    document.getElementById('attachQuizPreview')?.classList.remove('hidden');
+  });
+  document.getElementById('btnAttachQuizPick')?.addEventListener('click', () => {
+    toast('已選用既有小測「Unit 3 Check」· 附加至本課');
+    document.getElementById('attachQuizPreview')?.classList.remove('hidden');
+  });
+  document.getElementById('btnAttachVideo')?.addEventListener('click', () => {
+    toast('已附加影片（上載／URL）· 同頁預覽');
+    insertBlock('video');
+  });
+  document.getElementById('btnAttachVocab')?.addEventListener('click', () => {
+    toast('已附加生字詞庫 · 學生同頁見詞卡');
+    insertBlock('vocab');
+  });
+  document.getElementById('btnAddVocabRow')?.addEventListener('click', () => {
+    const host = document.getElementById('vocabRows');
+    if (!host) return;
+    const row = document.createElement('div');
+    row.className = 'vocab-row';
+    row.innerHTML = '<input placeholder="英文／原文" /><input placeholder="中文／解釋" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button>';
+    host.appendChild(row);
+  });
+  document.getElementById('vocabRows')?.addEventListener('click', e => {
+    if (e.target.closest('.vocab-del')) e.target.closest('.vocab-row')?.remove();
+  });
+
+  // admin subject CRUD demo
+  document.getElementById('subjList')?.addEventListener('click', e => {
+    const hide = e.target.closest('[data-subj-hide]');
+    if (hide) {
+      hide.closest('.subj-item')?.classList.toggle('hidden-subj');
+      toast(hide.closest('.subj-item')?.classList.contains('hidden-subj') ? '已隱藏科目' : '已重新顯示');
+      return;
+    }
+    const ren = e.target.closest('[data-subj-rename]');
+    if (ren) {
+      const name = ren.closest('.subj-item')?.querySelector('.subj-name');
+      if (name) {
+        const next = prompt('重新命名科目', name.textContent);
+        if (next) { name.textContent = next; toast('已重新命名'); }
+      }
+    }
+  });
+  document.getElementById('btnAddSubj')?.addEventListener('click', () => {
+    const name = prompt('新增科目名稱', '音樂');
+    if (!name) return;
+    const list = document.getElementById('subjList');
+    const item = document.createElement('div');
+    item.className = 'subj-item';
+    item.innerHTML = `<span class="handle">⠿</span><strong class="subj-name">${name}</strong><span class="badge badge-frost">新</span><span style="flex:1"></span><button type="button" class="btn btn-ghost btn-sm" data-subj-rename>改名</button><button type="button" class="btn btn-ghost btn-sm" data-subj-hide>隱藏</button>`;
+    list?.appendChild(item);
+    toast('已新增科目：' + name);
+  });
+
 
   document.getElementById('btnEmptyDemo')?.addEventListener('click', () => {
     forceEmpty = true;
@@ -526,7 +943,10 @@
   });
 
   document.getElementById('btnPublish')?.addEventListener('click', () => toast('已發佈上架（示範）'));
-  document.getElementById('btnAssignConfirm')?.addEventListener('click', () => toast('已確認指派（示範）'));
+  document.getElementById('btnAssignConfirm')?.addEventListener('click', () => {
+    if (!assignSelected.size) return toast('請先選擇指派對象');
+    toast('已確認指派（示範）· ' + TEACHER_POSTS[currentPost].label + ' · ' + assignSelected.size + ' 個對象');
+  });
   document.getElementById('btnMarkDone')?.addEventListener('click', () => toast('已標記完成 ✓'));
 
 
