@@ -159,7 +159,7 @@
         <span class="badge badge-y">小測</span>
         <div class="h2 mt8">常識 · 社區安全 MC</div>
         <p class="small muted mt8">8 題 · 老師已指派 · 截止週五</p>
-        <button type="button" class="btn btn-outline btn-sm mt12" data-go="/article/1">開始小測</button>
+        <button type="button" class="btn btn-outline btn-sm mt12" data-go="/quiz/1">開始小測</button>
       </div>
     </div>
     <div class="card s6" style="display:flex;gap:0">
@@ -215,7 +215,7 @@
       <div class="card-pad">
         <div class="between"><span class="badge badge-frost">生字</span><span class="small muted">12 詞</span></div>
         <div class="h2 mt8">Unit 3 · Weather Words</div>
-        <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-y">進行中 62%</span></div>
+        <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-y">進行中 62%</span><span class="badge badge-y">含本課小測</span></div>
       </div>
     </div>
     <div class="card mat-card s4" data-cat="reading" data-assigned="1" data-progress="0" data-go="/article/1">
@@ -223,7 +223,7 @@
       <div class="card-pad">
         <div class="between"><span class="badge badge-p">閱讀</span><span class="small muted">約 8 分</span></div>
         <div class="h2 mt8">A Rainy Day at School</div>
-        <div class="mat-meta"><span class="badge badge-g">已指派</span></div>
+        <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-y">含本課小測</span></div>
       </div>
     </div>
     <div class="card mat-card s4" data-cat="video" data-assigned="1" data-progress="1" data-go="/video/1">
@@ -231,15 +231,15 @@
       <div class="card-pad">
         <div class="between"><span class="badge badge-frost">影片</span><span class="small muted">04:32</span></div>
         <div class="h2 mt8">Phonics · /th/ sounds</div>
-        <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-y">進行中</span></div>
+        <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-y">進行中</span><span class="badge badge-y">含本課小測</span></div>
       </div>
     </div>
-    <div class="card mat-card s4" data-cat="quiz" data-assigned="1" data-progress="0" data-go="/article/1">
+    <div class="card mat-card s4" data-cat="quiz" data-assigned="1" data-progress="0" data-go="/quiz/1">
       <img class="thumb" src="img/quiz.jpg" alt="" />
       <div class="card-pad">
-        <div class="between"><span class="badge badge-y">小測</span><span class="small muted">10 題</span></div>
+        <div class="between"><span class="badge badge-y">獨立小測</span><span class="small muted">10 題</span></div>
         <div class="h2 mt8">Unit 3 Check</div>
-        <div class="mat-meta"><span class="badge badge-g">已指派</span></div>
+        <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-frost">僅小測</span></div>
       </div>
     </div>
     <div class="card mat-card s4" data-cat="reading" data-assigned="0" data-progress="0" data-go="/article/1">
@@ -268,9 +268,12 @@
     <div class="card" style="overflow:hidden">
       <img src="img/subj-eng.jpg" alt="" style="width:100%;height:200px;object-fit:cover" />
       <div class="card-pad reader-body">
-        <span class="badge badge-g">已指派 · 閱讀</span>
+        <div class="between" style="align-items:flex-start">
+          <span class="badge badge-g">已指派 · 閱讀</span>
+          <span class="badge badge-y">附本課小測</span>
+        </div>
         <h1 class="h1 mt8 mb8">A Rainy Day at School</h1>
-        <p class="small muted mb12">Level 3 · 約 8 分鐘 · 生字 6 個已連結</p>
+        <p class="small muted mb12">Level 3 · 約 8 分鐘 · 生字 6 個已連結 · 小測 3 題附於本頁</p>
         <p>It was a rainy Monday morning. The sky was grey, and the playground was wet. Students walked carefully into the school hall with umbrellas and raincoats.</p>
         <h2>In the classroom</h2>
         <p>Miss Chan asked everyone to share one word about the weather. Some said <strong>drizzle</strong>, some said <strong>storm</strong>, and someone joked about frogs jumping in puddles.</p>
@@ -281,8 +284,50 @@
         <p>We practised describing weather and feelings. Try writing three sentences using today’s new words before you close this page.</p>
         <div class="between mt12">
           <button type="button" class="btn btn-ghost btn-sm" data-go="/resource/vocab">練習相關生字</button>
+          <button type="button" class="btn btn-outline btn-sm" data-scroll="articleQuiz">↓ 本課小測</button>
+        </div>
+        <div class="between mt8">
+          <span class="small muted">讀完後可直接在本頁作答，無需另開頁面</span>
           <button type="button" class="btn btn-primary btn-sm" id="btnMarkDone">標記完成 ✓</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Inline attached quiz (same URL / attempt) -->
+    <div class="quiz-attach mt12" id="articleQuiz" data-quiz="article-1">
+      <div class="quiz-attach-head">
+        <div>
+          <div class="eyebrow">附加小測 · 同頁作答</div>
+          <div class="h2">本課小測</div>
+          <div class="small muted mt8">附於本篇文章 · 3 題 · MC／是非／填空</div>
+        </div>
+        <img src="img/quiz.jpg" alt="" class="quiz-attach-thumb" />
+      </div>
+      <div class="quiz-q" data-q="1">
+        <div class="between mb8"><span class="badge badge-frost">MC · 單選</span><span class="small muted">1 / 3</span></div>
+        <div class="quiz-prompt">Which word means「毛毛雨」?</div>
+        <div class="quiz-opts" data-type="mc">
+          <button type="button" class="quiz-opt" data-val="a"><span class="quiz-bullet">○</span> thunder</button>
+          <button type="button" class="quiz-opt" data-val="b"><span class="quiz-bullet">○</span> drizzle</button>
+          <button type="button" class="quiz-opt" data-val="c"><span class="quiz-bullet">○</span> breeze</button>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="2">
+        <div class="between mb8"><span class="badge badge-p">是非 True / False</span><span class="small muted">2 / 3</span></div>
+        <div class="quiz-prompt">The playground was dry on that Monday morning.</div>
+        <div class="quiz-opts" data-type="tf">
+          <button type="button" class="quiz-opt" data-val="t"><span class="quiz-bullet">○</span> True 正確</button>
+          <button type="button" class="quiz-opt" data-val="f"><span class="quiz-bullet">○</span> False 錯誤</button>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="3">
+        <div class="between mb8"><span class="badge badge-g">填空 Fill-in</span><span class="small muted">3 / 3</span></div>
+        <div class="quiz-prompt">Students walked carefully into the school hall with ________ and raincoats.</div>
+        <input class="quiz-fill" type="text" placeholder="填入英文單字（示範：umbrellas）" />
+      </div>
+      <div class="quiz-actions">
+        <button type="button" class="btn btn-primary btn-sm quiz-submit">提交本課小測</button>
+        <span class="small muted">同一 URL／同一 attempt · 不另開頁</span>
       </div>
     </div>
   </div>
@@ -293,7 +338,13 @@
   <button type="button" class="btn btn-ghost btn-sm mb12" data-go="/subject/eng">← English</button>
   <div class="bento">
     <div class="card s8 card-pad">
-      <div class="between mb8"><span class="badge badge-frost">影片</span><span class="small muted">Phonics · /th/</span></div>
+      <div class="between mb8">
+        <div class="row gap8" style="align-items:center">
+          <span class="badge badge-frost">影片</span>
+          <span class="badge badge-y">附本課小測</span>
+        </div>
+        <span class="small muted">Phonics · /th/</span>
+      </div>
       <div class="video-stage">
         <img src="img/video.jpg" alt="" />
         <div style="position:relative;z-index:1;text-align:center">
@@ -315,8 +366,49 @@
         <div class="check-item"><strong>02:10</strong> unvoiced /th/</div>
         <div class="check-item"><strong>03:20</strong> practice words</div>
       </div>
-      <img src="img/quiz.jpg" alt="" class="mt12" style="border-radius:10px;height:100px;width:100%;object-fit:cover" />
-      <button type="button" class="btn btn-primary btn-sm mt12" style="width:100%;justify-content:center" data-go="/resource/vocab">做生字練習</button>
+      <div class="callout mt12" style="margin-bottom:0">
+        <strong>本頁附小測</strong>
+        <div class="small muted mt8">看完影片可直接向下作答，無需另開頁面。</div>
+        <button type="button" class="btn btn-primary btn-sm mt12" data-scroll="videoQuiz" style="width:100%;justify-content:center">↓ 本課小測</button>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm mt8" style="width:100%;justify-content:center" data-go="/resource/vocab">相關生字練習</button>
+    </div>
+
+    <div class="card s12 quiz-attach" id="videoQuiz" data-quiz="video-1">
+      <div class="quiz-attach-head">
+        <div>
+          <div class="eyebrow">附加小測 · 同頁作答</div>
+          <div class="h2">本課小測 · Phonics /th/</div>
+          <div class="small muted mt8">附於本影片 · 3 題 · MC／是非／填空</div>
+        </div>
+        <img src="img/quiz.jpg" alt="" class="quiz-attach-thumb" />
+      </div>
+      <div class="quiz-q" data-q="1">
+        <div class="between mb8"><span class="badge badge-frost">MC · 單選</span><span class="small muted">1 / 3</span></div>
+        <div class="quiz-prompt">Which word has a <strong>voiced</strong> /th/ sound?</div>
+        <div class="quiz-opts" data-type="mc">
+          <button type="button" class="quiz-opt" data-val="a"><span class="quiz-bullet">○</span> think</button>
+          <button type="button" class="quiz-opt" data-val="b"><span class="quiz-bullet">○</span> this</button>
+          <button type="button" class="quiz-opt" data-val="c"><span class="quiz-bullet">○</span> bath</button>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="2">
+        <div class="between mb8"><span class="badge badge-p">是非 True / False</span><span class="small muted">2 / 3</span></div>
+        <div class="quiz-prompt">/θ/ (unvoiced) and /ð/ (voiced) are both written as “th”.</div>
+        <div class="quiz-opts" data-type="tf">
+          <button type="button" class="quiz-opt" data-val="t"><span class="quiz-bullet">○</span> True 正確</button>
+          <button type="button" class="quiz-opt" data-val="f"><span class="quiz-bullet">○</span> False 錯誤</button>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="3">
+        <div class="between mb8"><span class="badge badge-g">填空 Fill-in</span><span class="small muted">3 / 3</span></div>
+        <div class="quiz-prompt">Complete: “____” (弟弟) starts with a voiced /th/.</div>
+        <input class="quiz-fill" type="text" placeholder="填入英文（示範：brother）" />
+      </div>
+      <div class="quiz-actions">
+        <button type="button" class="btn btn-primary btn-sm quiz-submit">提交本課小測</button>
+        <span class="small muted">附於影片頁 · 同一 URL</span>
+      </div>
     </div>
   </div>
 </section>
@@ -327,7 +419,7 @@
     <div>
       <button type="button" class="btn btn-ghost btn-sm mb8" data-go="/subject/eng">← English · 生字</button>
       <div class="h1">Unit 3 · Weather Words</div>
-      <div class="sec-sub">資源清單 · 生字卡 · 非作業列表</div>
+      <div class="sec-sub">資源清單 · 生字卡 · 附本課小測（同頁）</div>
     </div>
     <div class="chips" id="resFilter">
       <button type="button" class="chip on" data-f="assigned">已指派</button>
@@ -337,7 +429,13 @@
   </div>
   <div class="bento">
     <div class="card s8 card-pad">
-      <div class="between mb12"><span class="sec-title" style="margin:0">生字卡片</span><span class="badge badge-y">已掌握 7 / 12</span></div>
+      <div class="between mb12">
+        <span class="sec-title" style="margin:0">生字卡片</span>
+        <div class="row gap8" style="align-items:center">
+          <span class="badge badge-y">已掌握 7 / 12</span>
+          <span class="badge badge-y">附本課小測</span>
+        </div>
+      </div>
       <div class="bento" style="gap:8px">
         <div class="card s4 card-pad" style="background:linear-gradient(160deg,#fff,rgba(136,192,208,.15))" data-tip="點擊翻面（示範）">
           <div class="eyebrow">01</div><div class="h2">drizzle</div><div class="small muted">n. 毛毛雨</div><div class="badge badge-g mt8">已掌握</div>
@@ -356,13 +454,103 @@
     <div class="card s4">
       <img src="img/vocab.jpg" alt="" style="height:140px;width:100%;object-fit:cover" />
       <div class="card-pad">
-        <div class="sec-title">其他資源類型示範</div>
+        <div class="sec-title">相關資源</div>
         <div class="stack gap8 mt8">
           <button type="button" class="btn btn-outline btn-sm" style="justify-content:flex-start" data-go="/video/1">▶ 相關影片 Phonics</button>
           <button type="button" class="btn btn-outline btn-sm" style="justify-content:flex-start" data-go="/article/1">📄 延伸閱讀</button>
-          <button type="button" class="btn btn-outline btn-sm" style="justify-content:flex-start" data-go="/article/1">☑ MC 小測</button>
+          <button type="button" class="btn btn-primary btn-sm" data-scroll="vocabQuiz" style="justify-content:flex-start">☑ 本課小測（本頁下方）</button>
         </div>
         <img src="img/progress.jpg" alt="" class="mt12" style="border-radius:10px;height:80px;width:100%;object-fit:cover" />
+      </div>
+    </div>
+
+    <div class="card s12 quiz-attach" id="vocabQuiz" data-quiz="vocab-1">
+      <div class="quiz-attach-head">
+        <div>
+          <div class="eyebrow">附加小測 · 同頁作答</div>
+          <div class="h2">本課小測 · Weather Words</div>
+          <div class="small muted mt8">附於生字資源 · 3 題 · MC／是非／填空</div>
+        </div>
+        <img src="img/quiz.jpg" alt="" class="quiz-attach-thumb" />
+      </div>
+      <div class="quiz-q" data-q="1">
+        <div class="between mb8"><span class="badge badge-frost">MC · 單選</span><span class="small muted">1 / 3</span></div>
+        <div class="quiz-prompt">「天氣預報」的英文是？</div>
+        <div class="quiz-opts" data-type="mc">
+          <button type="button" class="quiz-opt" data-val="a"><span class="quiz-bullet">○</span> thunder</button>
+          <button type="button" class="quiz-opt" data-val="b"><span class="quiz-bullet">○</span> forecast</button>
+          <button type="button" class="quiz-opt" data-val="c"><span class="quiz-bullet">○</span> humid</button>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="2">
+        <div class="between mb8"><span class="badge badge-p">是非 True / False</span><span class="small muted">2 / 3</span></div>
+        <div class="quiz-prompt">“humid” means dry and cool.</div>
+        <div class="quiz-opts" data-type="tf">
+          <button type="button" class="quiz-opt" data-val="t"><span class="quiz-bullet">○</span> True 正確</button>
+          <button type="button" class="quiz-opt" data-val="f"><span class="quiz-bullet">○</span> False 錯誤</button>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="3">
+        <div class="between mb8"><span class="badge badge-g">填空 Fill-in</span><span class="small muted">3 / 3</span></div>
+        <div class="quiz-prompt">A gentle wind is called a ________.</div>
+        <input class="quiz-fill" type="text" placeholder="填入英文（示範：breeze）" />
+      </div>
+      <div class="quiz-actions">
+        <button type="button" class="btn btn-primary btn-sm quiz-submit">提交本課小測</button>
+        <span class="small muted">附於生字頁 · 同一 URL</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== STANDALONE QUIZ ========== -->
+<section class="page" id="pg-quiz">
+  <div class="reader">
+    <button type="button" class="btn btn-ghost btn-sm mb12" data-go="/subject/eng">← English</button>
+    <div class="card" style="overflow:hidden">
+      <img src="img/quiz.jpg" alt="" style="width:100%;height:160px;object-fit:cover" />
+      <div class="card-pad">
+        <div class="between">
+          <span class="badge badge-y">獨立小測</span>
+          <span class="small muted">未附於文章／影片</span>
+        </div>
+        <h1 class="h1 mt8 mb8">Unit 3 Check</h1>
+        <p class="small muted mb12">獨立小測教材 · 10 題示範（此頁顯示前 3 題）· 可單獨指派</p>
+      </div>
+    </div>
+    <div class="quiz-attach mt12" id="standaloneQuiz" data-quiz="standalone-1">
+      <div class="quiz-attach-head">
+        <div>
+          <div class="eyebrow">獨立小測</div>
+          <div class="h2">開始作答</div>
+          <div class="small muted mt8">此為 quiz-only 教材；文章／影片的附加小測則嵌在資源同頁</div>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="1">
+        <div class="between mb8"><span class="badge badge-frost">MC · 單選</span><span class="small muted">1 / 3</span></div>
+        <div class="quiz-prompt">Pick the odd one out (weather words).</div>
+        <div class="quiz-opts" data-type="mc">
+          <button type="button" class="quiz-opt" data-val="a"><span class="quiz-bullet">○</span> drizzle</button>
+          <button type="button" class="quiz-opt" data-val="b"><span class="quiz-bullet">○</span> forecast</button>
+          <button type="button" class="quiz-opt" data-val="c"><span class="quiz-bullet">○</span> pencil</button>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="2">
+        <div class="between mb8"><span class="badge badge-p">是非 True / False</span><span class="small muted">2 / 3</span></div>
+        <div class="quiz-prompt">Unit 3 focuses on weather vocabulary.</div>
+        <div class="quiz-opts" data-type="tf">
+          <button type="button" class="quiz-opt" data-val="t"><span class="quiz-bullet">○</span> True 正確</button>
+          <button type="button" class="quiz-opt" data-val="f"><span class="quiz-bullet">○</span> False 錯誤</button>
+        </div>
+      </div>
+      <div class="quiz-q" data-q="3">
+        <div class="between mb8"><span class="badge badge-g">填空 Fill-in</span><span class="small muted">3 / 3</span></div>
+        <div class="quiz-prompt">Write one weather word you learned this unit: ________</div>
+        <input class="quiz-fill" type="text" placeholder="任意合理單字" />
+      </div>
+      <div class="quiz-actions">
+        <button type="button" class="btn btn-primary btn-sm quiz-submit">提交小測</button>
+        <span class="small muted">獨立小測 · 單獨 URL</span>
       </div>
     </div>
   </div>
@@ -677,7 +865,7 @@
   </div>
   <div class="callout">
     <strong>建議實作：TipTap</strong>
-    <span class="small muted"> — 以 TipTap（ProseMirror）作為生產編輯器：支援 slash commands、自訂 Node（生字 block／MC block／影片 embed）、協作與 JSON 儲存。此頁為 UI mock，非真正 TipTap 實例。</span>
+    <span class="small muted"> — 以 TipTap（ProseMirror）作為生產編輯器：支援 slash commands、自訂 Node（生字 block／MC block／影片 embed）、協作與 JSON 儲存。側欄「附加小測」會讓學生在資源<strong>同頁</strong>看到「本課小測」。此頁為 UI mock，非真正 TipTap 實例。</span>
   </div>
   <div class="editor-layout">
     <div class="editor-main">
@@ -739,6 +927,14 @@
       <div class="sec-title mb12">設定</div>
       <div class="field"><label>科目</label><select><option>English</option><option>中文</option><option>數學</option><option>常識</option></select></div>
       <div class="field"><label>分類</label><select><option>閱讀 Reading</option><option>生字 Vocab</option><option>影片</option><option>小測</option></select></div>
+      <div class="field"><label>附加小測</label>
+        <select id="attachQuizSel">
+          <option selected>附加 · 本課小測（學生同頁作答）</option>
+          <option>不附加</option>
+          <option>改為獨立小測教材</option>
+        </select>
+        <div class="small muted mt8">「附加」= 學生開啟文章／影片／生字時，小測嵌在<strong>同一頁</strong>下方，不另開導覽目的地。</div>
+      </div>
       <div class="field"><label>指派範圍</label>
         <select><option>班 · 5A</option><option>級 · 五年級</option><option>個人 · 多選</option><option>暫不上架（草稿）</option></select>
       </div>

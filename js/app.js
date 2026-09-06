@@ -4,9 +4,10 @@
     student: [
       { route: '/home', label: '科目主頁' },
       { route: '/subject/eng', label: 'English' },
-      { route: '/article/1', label: '文章' },
-      { route: '/video/1', label: '影片' },
-      { route: '/resource/vocab', label: '生字資源' },
+      { route: '/article/1', label: '文章+小測' },
+      { route: '/video/1', label: '影片+小測' },
+      { route: '/resource/vocab', label: '生字+小測' },
+      { route: '/quiz/1', label: '獨立小測' },
       { route: '/progress', label: '我的進度' }
     ],
     teacher: [
@@ -44,6 +45,10 @@
 
   function parseHash() {
     const raw = (location.hash || '#/login').replace(/^#/, '') || '/login';
+    // Ignore in-page fragment ids (e.g. articleQuiz) — keep current route
+    if (raw && !raw.startsWith('/') && !raw.includes('/')) {
+      return currentRoute || '/login';
+    }
     return raw.startsWith('/') ? raw : '/' + raw;
   }
 
@@ -63,6 +68,7 @@
     if (route.startsWith('/article')) return 'article';
     if (route.startsWith('/video')) return 'video';
     if (route.startsWith('/resource')) return 'resource';
+    if (route.startsWith('/quiz')) return 'quiz';
     if (route === '/progress') return 'progress';
     if (route === '/teacher') return 'teacher';
     if (route === '/assign') return 'assign';
@@ -135,7 +141,8 @@
           (i.route.startsWith('/subject') && currentRoute.startsWith('/subject')) ||
           (i.route.startsWith('/article') && currentRoute.startsWith('/article')) ||
           (i.route.startsWith('/video') && currentRoute.startsWith('/video')) ||
-          (i.route.startsWith('/resource') && currentRoute.startsWith('/resource'));
+          (i.route.startsWith('/resource') && currentRoute.startsWith('/resource')) ||
+          (i.route.startsWith('/quiz') && currentRoute.startsWith('/quiz'));
         return `<button class="pchip${active ? ' active' : ''}" data-route="${i.route}">${i.label}</button>`;
       })
       .join('');
@@ -435,6 +442,13 @@
   document.querySelector('.brand').addEventListener('click', () => navigate(ROLE_HOME[currentRole]));
 
   document.body.addEventListener('click', e => {
+    const scrollBtn = e.target.closest('[data-scroll]');
+    if (scrollBtn) {
+      e.preventDefault();
+      const target = document.getElementById(scrollBtn.dataset.scroll);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     const go = e.target.closest('[data-go]');
     if (go) {
       e.preventDefault();
@@ -514,6 +528,40 @@
   document.getElementById('btnPublish')?.addEventListener('click', () => toast('已發佈上架（示範）'));
   document.getElementById('btnAssignConfirm')?.addEventListener('click', () => toast('已確認指派（示範）'));
   document.getElementById('btnMarkDone')?.addEventListener('click', () => toast('已標記完成 ✓'));
+
+
+  /* —— inline quiz (same-page attach) —— */
+  document.body.addEventListener('click', e => {
+    const opt = e.target.closest('.quiz-opt');
+    if (opt) {
+      const group = opt.closest('.quiz-opts');
+      if (!group) return;
+      group.querySelectorAll('.quiz-opt').forEach(o => {
+        o.classList.remove('selected');
+        const b = o.querySelector('.quiz-bullet');
+        if (b) b.textContent = '○';
+      });
+      opt.classList.add('selected');
+      const b = opt.querySelector('.quiz-bullet');
+      if (b) b.textContent = '●';
+      return;
+    }
+    const submit = e.target.closest('.quiz-submit');
+    if (submit) {
+      const root = submit.closest('[data-quiz]') || submit.closest('.quiz-attach');
+      const id = root?.dataset.quiz || 'quiz';
+      const answered = root ? root.querySelectorAll('.quiz-opt.selected').length : 0;
+      const fills = root ? [...root.querySelectorAll('.quiz-fill')].filter(i => i.value.trim()).length : 0;
+      toast('已提交小測（示範）· ' + id + ' · 已選 ' + answered + ' · 填空 ' + fills);
+    }
+  });
+
+  document.getElementById('attachQuizSel')?.addEventListener('change', e => {
+    const v = e.target.value || '';
+    if (v.includes('獨立')) toast('將另存為獨立小測教材');
+    else if (v.includes('不附加')) toast('已取消附加小測');
+    else toast('附加小測：學生將在資源同頁看到「本課小測」');
+  });
 
   hydrateSparks();
 
