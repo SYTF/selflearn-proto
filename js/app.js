@@ -137,6 +137,11 @@
   let currentPost = 'class';
   let assignSelected = new Map(); // id -> label
   let attachOpen = null;
+  let editorBlocks = null;
+  let slashState = { open: false, query: '', index: 0, replaceId: null, fromHint: false };
+  let dragBlockId = null;
+  const EDITOR_STORAGE_KEY = 'selflearn-proto-editor-blocks-v1';
+  const SLASH_TYPES = ['h1', 'p', 'list', 'quiz', 'video', 'vocab', 'divider'];
 
   function parseHash() {
     const raw = (location.hash || '#/login').replace(/^#/, '') || '/login';
@@ -230,6 +235,8 @@
     }
     if (pageId === 'editor') {
       syncAttachWalk();
+      ensureEditorState();
+      renderEditor();
     }
     if (pageId === 'admin-usage') {
       buildContribGraph('usageContrib', { weeks: 26, seed: 7, title: '全校活躍（GitHub 式）' });
@@ -635,7 +642,7 @@
         <div class="between mt8"><span class="muted small">Score</span><strong>${s.score}</strong></div>
       </div>
       <div><div class="small muted mb8">兩週趨勢</div>${sparkSVG(s.spark.concat(s.spark), { color: s.risk ? '#BF616A' : '#5E81AC', fill: true, w: 280, h: 40 }).replace('class="spark"', 'class="spark" style="width:100%;height:40px"')}</div>
-      <img src="img/mascot.jpg" style="border-radius:10px;height:100px;width:100%;object-fit:cover" alt=""/>
+      <img src="img/mascot.png" style="border-radius:10px;height:100px;width:100%;object-fit:cover" alt=""/>
       <button class="btn btn-primary btn-sm" id="drawerAssign">改為個人指派</button>
     </div>`;
     document.getElementById('drawer').classList.add('open');
@@ -675,27 +682,298 @@
     grid.innerHTML = html;
   }
 
-  function toggleSlash() {
-    document.getElementById('slashMenu').classList.toggle('open');
+  function uid(prefix) {
+    return (prefix || 'b') + Math.random().toString(36).slice(2, 9);
   }
 
-  function insertBlock(type) {
+  function defaultEditorBlocks() {
+    return [
+      { id: 'b-h1', type: 'h1', content: 'Unit 3 · A Rainy Day' },
+      { id: 'b-p1', type: 'p', content: 'It was a rainy Monday morning. Students walked carefully with umbrellas and raincoats. 在此以區塊編輯內文——非 textarea。' },
+      { id: 'b-img', type: 'img', src: 'img/subj-eng.png', caption: '圖片 block · 插圖示範' },
+      { id: 'b-p2', type: 'p', content: '輸入 / 可插入標題、段落、清單、小測、影片、生字或分隔線。' }
+    ];
+  }
+
+  function ensureEditorState() {
+    if (editorBlocks && Array.isArray(editorBlocks) && editorBlocks.length) return;
+    try {
+      const raw = localStorage.getItem(EDITOR_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) {
+          editorBlocks = parsed;
+          return;
+        }
+      }
+    } catch (e) { /* ignore */ }
+    editorBlocks = defaultEditorBlocks();
+  }
+
+  function persistEditorState() {
+    try {
+      localStorage.setItem(EDITOR_STORAGE_KEY, JSON.stringify(editorBlocks));
+    } catch (e) { /* ignore */ }
+  }
+
+  function blockInnerHtml(b) {
+    if (b.type === 'h1') return escapeHtml(b.content || '標題');
+    if (b.type === 'h2') return escapeHtml(b.content || '小標題');
+    if (b.type === 'p') return escapeHtml(b.content || '');
+    if (b.type === 'list') {
+      const items = (b.items && b.items.length ? b.items : ['清單項目']).map(t => `<li>${escapeHtml(t)}</li>`).join('');
+      return `<ul>${items}</ul>`;
+    }
+    if (b.type === 'divider') return '<hr/>';
+    if (b.type === 'img') {
+      return `<img src="${escapeAttr(b.src || 'img/login-hero.png')}" alt=""/><div class="small muted" style="padding:6px 10px;background:var(--snow0)">${escapeHtml(b.caption || '圖片 block')}</div>`;
+    }
+    if (b.type === 'video') {
+      return `<div style="width:56px;height:40px;border-radius:8px;background:var(--frost0);color:#fff;display:grid;place-items:center">▶</div><div><strong>${escapeHtml(b.title || '影片 embed')}</strong><div class="small muted">${escapeHtml(b.sub || '上載／URL · 00:00')}</div></div>`;
+    }
+    if (b.type === 'vocab') {
+      const chips = (b.words || [{ en: 'drizzle', zh: '毛毛雨' }, { en: 'forecast', zh: '預報' }])
+        .map(w => `<span class="chip soft-on">${escapeHtml(w.en)} · ${escapeHtml(w.zh)}</span>`).join('');
+      return `<div class="between"><strong>生字 block</strong><span class="badge badge-g">詞卡</span></div><div class="chips mt8">${chips}</div>`;
+    }
+    if (b.type === 'quiz' || b.type === 'mc') {
+      return `<div class="between"><strong>${escapeHtml(b.title || '本課小測')}</strong><span class="badge badge-frost">附加</span></div><div class="mt8" style="font-weight:600">${escapeHtml(b.prompt || 'Which word means「毛毛雨」？')}</div><div class="mc-opt"><span>○</span> thunder</div><div class="mc-opt"><span>○</span> drizzle</div>`;
+    }
+    return escapeHtml(b.content || '');
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  function escapeAttr(s) { return escapeHtml(s).replace(/'/g, '&#39;'); }
+
+  function isEditableType(type) {
+    return type === 'h1' || type === 'h2' || type === 'p' || type === 'list';
+  }
+
+  function renderEditor() {
+    ensureEditorState();
+    const host = document.getElementById('editorBlocks');
+    if (!host) return;
+    const n = editorBlocks.length;
+    host.innerHTML = editorBlocks.map((b, i) => {
+      const editable = isEditableType(b.type) ? ' contenteditable="true"' : '';
+      const cls = b.type === 'quiz' ? 'quiz' : b.type;
+      return `<div class="block-row" data-id="${b.id}" data-type="${b.type}">
+        <div class="block-controls">
+          <button type="button" class="blk-move blk-up" data-move="up" title="上移" ${i === 0 ? 'disabled' : ''}>▲</button>
+          <span class="blk-handle" draggable="true" title="拖曳排序" aria-label="拖曳排序">⠿</span>
+          <button type="button" class="blk-move blk-down" data-move="down" title="下移" ${i === n - 1 ? 'disabled' : ''}>▼</button>
+        </div>
+        <div class="block block-${cls}" data-block-body="1"${editable}>${blockInnerHtml(b)}</div>
+      </div>`;
+    }).join('');
+    closeSlashMenu(true);
+  }
+
+  function syncBlockContentFromDom(id) {
+    const row = document.querySelector(`.block-row[data-id="${id}"]`);
+    if (!row) return;
+    const b = editorBlocks.find(x => x.id === id);
+    if (!b || !isEditableType(b.type)) return;
+    const body = row.querySelector('[data-block-body]');
+    if (!body) return;
+    if (b.type === 'list') {
+      b.items = [...body.querySelectorAll('li')].map(li => li.textContent.trim()).filter(Boolean);
+      if (!b.items.length) b.items = ['清單項目'];
+    } else {
+      b.content = body.textContent;
+    }
+    persistEditorState();
+  }
+
+  function moveBlock(id, dir) {
+    const i = editorBlocks.findIndex(b => b.id === id);
+    if (i < 0) return;
+    const j = dir === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= editorBlocks.length) return;
+    const tmp = editorBlocks[i];
+    editorBlocks[i] = editorBlocks[j];
+    editorBlocks[j] = tmp;
+    persistEditorState();
+    renderEditor();
+    toast('已重排區塊');
+  }
+
+  function reorderBlocks(fromId, toId) {
+    if (!fromId || !toId || fromId === toId) return;
+    const from = editorBlocks.findIndex(b => b.id === fromId);
+    const to = editorBlocks.findIndex(b => b.id === toId);
+    if (from < 0 || to < 0) return;
+    const [item] = editorBlocks.splice(from, 1);
+    editorBlocks.splice(to, 0, item);
+    persistEditorState();
+    renderEditor();
+    toast('已拖曳重排');
+  }
+
+  function makeBlock(type) {
+    const id = uid('b');
+    if (type === 'h1') return { id, type: 'h1', content: '新標題區塊' };
+    if (type === 'h2') return { id, type: 'h2', content: '小標題' };
+    if (type === 'p') return { id, type: 'p', content: '新段落——點此編輯內文。' };
+    if (type === 'list') return { id, type: 'list', items: ['第一點', '第二點'] };
+    if (type === 'divider') return { id, type: 'divider' };
+    if (type === 'img') return { id, type: 'img', src: 'img/login-hero.png', caption: '圖片 block · 剛插入' };
+    if (type === 'video') return { id, type: 'video', title: '影片 embed', sub: '上載／URL · 新插入' };
+    if (type === 'vocab') return { id, type: 'vocab', words: [{ en: 'sunny', zh: '晴朗' }, { en: 'humid', zh: '潮濕' }] };
+    if (type === 'quiz' || type === 'mc') return { id, type: 'quiz', title: '本課小測', prompt: 'Which word means「毛毛雨」？' };
+    return { id, type: 'p', content: '新段落' };
+  }
+
+  function insertBlock(type, opts) {
+    opts = opts || {};
+    ensureEditorState();
+    const block = makeBlock(type === 'mc' ? 'quiz' : type);
+    let idx = editorBlocks.length;
+    if (opts.replaceId) {
+      const i = editorBlocks.findIndex(b => b.id === opts.replaceId);
+      if (i >= 0) {
+        editorBlocks.splice(i, 1, block);
+        idx = i;
+      } else {
+        editorBlocks.push(block);
+        idx = editorBlocks.length - 1;
+      }
+    } else if (opts.afterId) {
+      const i = editorBlocks.findIndex(b => b.id === opts.afterId);
+      idx = i >= 0 ? i + 1 : editorBlocks.length;
+      editorBlocks.splice(idx, 0, block);
+    } else {
+      editorBlocks.push(block);
+      idx = editorBlocks.length - 1;
+    }
+    persistEditorState();
+    renderEditor();
+    if (type === 'quiz') {
+      if (attachOpen !== 'quiz') openAttach('quiz');
+      else syncAttachWalk();
+    }
+    toast('已插入：' + ({ h1: '標題', p: '段落', list: '清單', quiz: '附加小測', video: '影片', vocab: '生字', divider: '分隔線', img: '圖片', mc: '小測' }[type] || type));
+    // focus editable
+    const row = document.querySelector(`.block-row[data-id="${block.id}"] [data-block-body]`);
+    if (row && row.isContentEditable) {
+      row.focus();
+      placeCaretEnd(row);
+    }
+    return block;
+  }
+
+  function placeCaretEnd(el) {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function visibleSlashItems() {
+    return [...document.querySelectorAll('#slashItems .slash-item')].filter(el => !el.classList.contains('hidden'));
+  }
+
+  function filterSlashMenu(query) {
+    const q = (query || '').trim().toLowerCase();
+    const items = [...document.querySelectorAll('#slashItems .slash-item')];
+    let shown = 0;
+    items.forEach(el => {
+      const label = (el.querySelector('strong')?.textContent || '') + ' ' + (el.querySelector('.small')?.textContent || '');
+      const keys = (el.dataset.keywords || '') + ' ' + (el.dataset.insert || '') + ' ' + label;
+      const ok = !q || keys.toLowerCase().includes(q);
+      el.classList.toggle('hidden', !ok);
+      el.classList.remove('sel');
+      if (ok) shown++;
+    });
+    document.getElementById('slashEmpty')?.classList.toggle('hidden', shown > 0);
+    const vis = visibleSlashItems();
+    slashState.index = 0;
+    if (vis[0]) vis[0].classList.add('sel');
+    const lbl = document.getElementById('slashQueryLbl');
+    if (lbl) lbl.textContent = '/' + (query || '');
+  }
+
+  function openSlashMenu(opts) {
+    opts = opts || {};
+    const menu = document.getElementById('slashMenu');
     const canvas = document.getElementById('editorCanvas');
-    const hint = canvas.querySelector('.slash-hint');
-    const html = {
-      h1: `<div class="block block-h1" contenteditable="true">新標題區塊</div>`,
-      p: `<div class="block block-p" contenteditable="true">新段落——點此編輯內文。</div>`,
-      img: `<div class="block block-img"><img src="img/login-hero.jpg" alt=""/><div class="small muted" style="padding:6px 10px;background:var(--snow0)">圖片 block · 剛插入</div></div>`,
-      video: `<div class="block block-video"><div style="width:56px;height:40px;border-radius:8px;background:var(--frost0);color:#fff;display:grid;place-items:center">▶</div><div><strong>影片 embed</strong><div class="small muted">新插入 · 00:00</div></div></div>`,
-      vocab: `<div class="block block-vocab"><div class="between"><strong>生字 block</strong><span class="badge badge-g">新</span></div><div class="chips mt8"><span class="chip soft-on">sunny · 晴朗</span></div></div>`,
-      mc: `<div class="block block-mc"><div class="between"><strong>MC 題 block</strong><span class="badge badge-frost">單選</span></div><div class="mt8" style="font-weight:600">新題目？</div><div class="mc-opt"><span>○</span> 選項 A</div><div class="mc-opt"><span>○</span> 選項 B</div></div>`
-    };
-    const wrap = document.createElement('div');
-    wrap.innerHTML = html[type] || html.p;
-    const node = wrap.firstElementChild;
-    if (hint) canvas.insertBefore(node, hint);
-    else canvas.appendChild(node);
-    toast('已插入區塊：' + type);
+    if (!menu || !canvas) return;
+    slashState.open = true;
+    slashState.query = opts.query || '';
+    slashState.replaceId = opts.replaceId || null;
+    slashState.fromHint = !!opts.fromHint;
+    filterSlashMenu(slashState.query);
+    menu.classList.add('open');
+    // position near trigger
+    let top = 80, left = 48;
+    if (opts.anchorEl) {
+      const cRect = canvas.getBoundingClientRect();
+      const aRect = opts.anchorEl.getBoundingClientRect();
+      top = aRect.bottom - cRect.top + canvas.scrollTop + 6;
+      left = Math.max(12, aRect.left - cRect.left);
+    }
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+  }
+
+  function closeSlashMenu(silent) {
+    slashState.open = false;
+    slashState.query = '';
+    slashState.replaceId = null;
+    slashState.fromHint = false;
+    document.getElementById('slashMenu')?.classList.remove('open');
+  }
+
+  function toggleSlash() {
+    if (slashState.open) closeSlashMenu();
+    else {
+      const hint = document.getElementById('editorAddHint');
+      openSlashMenu({ fromHint: true, anchorEl: hint, query: '' });
+      hint?.focus();
+    }
+  }
+
+  function applySlashSelection() {
+    const vis = visibleSlashItems();
+    const item = vis[slashState.index] || vis[0];
+    if (!item) return;
+    const type = item.dataset.insert;
+    const replaceId = slashState.replaceId;
+    const fromHint = slashState.fromHint;
+    closeSlashMenu();
+    if (fromHint) {
+      const hint = document.getElementById('editorAddHint');
+      if (hint) hint.textContent = '';
+      insertBlock(type);
+    } else if (replaceId) {
+      insertBlock(type, { replaceId });
+    } else {
+      insertBlock(type);
+    }
+  }
+
+  function slashQueryFromText(text) {
+    const t = String(text || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\u200b/g, '')
+      .replace(/\r/g, '')
+      .replace(/\n/g, '')
+      .trim();
+    const m = t.match(/^\/(.*)$/);
+    return m ? (m[1] || '') : null;
+  }
+
+  function detectSlashInEditable(el) {
+    if (!el || !el.isContentEditable) return null;
+    return slashQueryFromText(el.textContent || '');
   }
 
   /* —— events —— */
@@ -796,7 +1074,12 @@
     document.getElementById('quizPickBox')?.classList.remove('hidden');
   });
 
-  document.getElementById('tbImg')?.addEventListener('click', () => insertBlock('img'));
+  document.querySelector('.editor-toolbar')?.addEventListener('click', e => {
+    const tb = e.target.closest('[data-tb-insert]');
+    if (!tb) return;
+    insertBlock(tb.dataset.tbInsert);
+  });
+  // legacy id still works via data-tb-insert on #tbImg
 
   // admin user tabs
   document.getElementById('userTabs')?.addEventListener('click', e => {
@@ -859,11 +1142,11 @@
     openAttach(btn.dataset.attach);
   });
   document.getElementById('btnAttachQuizCreate')?.addEventListener('click', () => {
-    toast('已在本頁建立小測題（示範）· 學生同頁作答');
+    insertBlock('quiz');
     document.getElementById('attachQuizPreview')?.classList.remove('hidden');
   });
   document.getElementById('btnAttachQuizPick')?.addEventListener('click', () => {
-    toast('已選用既有小測「Unit 3 Check」· 附加至本課');
+    insertBlock('quiz');
     document.getElementById('attachQuizPreview')?.classList.remove('hidden');
   });
   document.getElementById('btnAttachVideo')?.addEventListener('click', () => {
@@ -930,16 +1213,162 @@
     applySubjectFilters();
   });
 
+  document.getElementById('editorAddHint')?.addEventListener('focus', () => {
+    const hint = document.getElementById('editorAddHint');
+    if (!hint) return;
+    // keep empty for slash; strip leftover zero-width / nbsp
+    if (!(hint.textContent || '').replace(/\u200b/g, '').trim()) hint.textContent = '';
+  });
   document.getElementById('btnSlash')?.addEventListener('click', toggleSlash);
   document.getElementById('btnSlashTb')?.addEventListener('click', toggleSlash);
 
-  document.querySelectorAll('#slashMenu .slash-item').forEach(item => {
-    item.addEventListener('click', () => {
-      document.querySelectorAll('#slashMenu .slash-item').forEach(x => x.classList.remove('sel'));
-      item.classList.add('sel');
-      insertBlock(item.dataset.insert);
-      document.getElementById('slashMenu').classList.remove('open');
+  document.getElementById('slashItems')?.addEventListener('click', e => {
+    const item = e.target.closest('.slash-item');
+    if (!item || item.classList.contains('hidden')) return;
+    const vis = visibleSlashItems();
+    slashState.index = Math.max(0, vis.indexOf(item));
+    vis.forEach((x, i) => x.classList.toggle('sel', i === slashState.index));
+    applySlashSelection();
+  });
+
+  /* —— editor canvas: reorder + slash —— */
+  document.getElementById('editorCanvas')?.addEventListener('click', e => {
+    const up = e.target.closest('[data-move]');
+    if (up) {
+      const row = up.closest('.block-row');
+      if (row) moveBlock(row.dataset.id, up.dataset.move);
+      return;
+    }
+  });
+
+  document.getElementById('editorCanvas')?.addEventListener('input', e => {
+    const body = e.target.closest('[data-block-body]');
+    const hint = e.target.id === 'editorAddHint' ? e.target : null;
+    if (body) {
+      const row = body.closest('.block-row');
+      const id = row?.dataset.id;
+      if (id) syncBlockContentFromDom(id);
+      const q = detectSlashInEditable(body);
+      if (q !== null) {
+        openSlashMenu({ query: q, replaceId: id, anchorEl: row || body });
+      } else if (slashState.open && slashState.replaceId === id) {
+        closeSlashMenu();
+      }
+      return;
+    }
+    if (hint) {
+      const q = slashQueryFromText(hint.textContent || '');
+      if (q !== null) {
+        openSlashMenu({ query: q, fromHint: true, anchorEl: hint });
+      } else if (slashState.open && slashState.fromHint) {
+        closeSlashMenu();
+      }
+    }
+  });
+
+  document.getElementById('editorCanvas')?.addEventListener('keydown', e => {
+    const inEditor = e.target.closest('#editorCanvas');
+    if (!inEditor) return;
+
+    if (slashState.open) {
+      const vis = visibleSlashItems();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        // strip leading /query from current editable
+        const body = e.target.closest('[data-block-body]');
+        const hint = e.target.id === 'editorAddHint' ? e.target : null;
+        if (body && detectSlashInEditable(body) !== null) {
+          body.textContent = '';
+          syncBlockContentFromDom(body.closest('.block-row')?.dataset.id);
+        }
+        if (hint) hint.textContent = '';
+        closeSlashMenu();
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!vis.length) return;
+        slashState.index = (slashState.index + 1) % vis.length;
+        vis.forEach((x, i) => x.classList.toggle('sel', i === slashState.index));
+        vis[slashState.index]?.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!vis.length) return;
+        slashState.index = (slashState.index - 1 + vis.length) % vis.length;
+        vis.forEach((x, i) => x.classList.toggle('sel', i === slashState.index));
+        vis[slashState.index]?.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applySlashSelection();
+        return;
+      }
+    }
+
+    // Start slash with `/` — open after browser inserts the character
+    if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const body = e.target.closest('[data-block-body]');
+      const hint = e.target.id === 'editorAddHint' ? e.target : null;
+      const row = body && body.closest('.block-row');
+      const canBody = !!(body && isEditableType(row && row.dataset.type) && !(body.textContent || '').trim());
+      const canHint = !!(hint && !(hint.textContent || '').replace(/\u200b/g, '').trim());
+      if (canBody || canHint) {
+        requestAnimationFrame(function () {
+          if (canBody) {
+            const q = detectSlashInEditable(body);
+            if (q !== null) openSlashMenu({ query: q, replaceId: row.dataset.id, anchorEl: row });
+          } else if (canHint) {
+            const q = slashQueryFromText(hint.textContent || '');
+            if (q !== null) openSlashMenu({ query: q, fromHint: true, anchorEl: hint });
+          }
+        });
+      }
+    }
+  });
+
+  // Drag reorder via handle
+  document.getElementById('editorCanvas')?.addEventListener('dragstart', e => {
+    const handle = e.target.closest('.blk-handle');
+    if (!handle) {
+      // prevent dragging from contenteditable text
+      if (e.target.closest('[data-block-body]')) e.preventDefault();
+      return;
+    }
+    const row = handle.closest('.block-row');
+    if (!row) return;
+    dragBlockId = row.dataset.id;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', dragBlockId);
+  });
+  document.getElementById('editorCanvas')?.addEventListener('dragend', e => {
+    document.querySelectorAll('.block-row.dragging,.block-row.drag-over').forEach(el => {
+      el.classList.remove('dragging', 'drag-over');
     });
+    dragBlockId = null;
+  });
+  document.getElementById('editorCanvas')?.addEventListener('dragover', e => {
+    const row = e.target.closest('.block-row');
+    if (!row || !dragBlockId) return;
+    e.preventDefault();
+    document.querySelectorAll('.block-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+    if (row.dataset.id !== dragBlockId) row.classList.add('drag-over');
+  });
+  document.getElementById('editorCanvas')?.addEventListener('drop', e => {
+    const row = e.target.closest('.block-row');
+    if (!row || !dragBlockId) return;
+    e.preventDefault();
+    reorderBlocks(dragBlockId, row.dataset.id);
+    dragBlockId = null;
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && slashState.open) {
+      closeSlashMenu();
+    }
   });
 
   document.getElementById('btnPublish')?.addEventListener('click', () => toast('已發佈上架（示範）'));
