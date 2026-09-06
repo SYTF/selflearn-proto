@@ -171,7 +171,7 @@ table.report .spark{width:72px;height:24px}
 .editor-add-hint{margin-top:8px;padding:10px 12px;border:1px dashed var(--snow2);border-radius:10px;color:var(--ink3);font-size:13px;cursor:text;background:transparent}
 .editor-add-hint:focus{outline:none;border-color:var(--frost2);background:#fff;color:var(--ink1)}
 .editor-add-hint:empty:before{content:attr(data-placeholder);color:var(--ink3);pointer-events:none}
-.slash-menu{position:absolute;left:48px;top:100px;width:280px;background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(46,52,64,.18);border:1px solid var(--snow2);z-index:40;overflow:hidden;display:none;max-height:320px;overflow-y:auto}
+.slash-menu{position:fixed;left:48px;top:100px;width:280px;background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(46,52,64,.18);border:1px solid var(--snow2);z-index:60;overflow:hidden;display:none;max-height:320px;overflow-y:auto}
 .slash-menu.open{display:block}
 .slash-menu .slash-head{padding:8px 12px;background:var(--snow0);font-size:11px;font-weight:700;color:var(--ink3);display:flex;justify-content:space-between;gap:8px;position:sticky;top:0}
 .slash-item{display:flex;gap:10px;align-items:center;padding:9px 12px;cursor:pointer;font-size:13px}

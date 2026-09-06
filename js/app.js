@@ -137,7 +137,7 @@
   let currentPost = 'class';
   let assignSelected = new Map(); // id -> label
   let editorBlocks = null;
-  let slashState = { open: false, query: '', index: 0, replaceId: null, fromHint: false };
+  let slashState = { open: false, query: '', index: 0, replaceId: null, fromHint: false, anchorEl: null };
   let dragBlockId = null;
   let insertModalState = { kind: null, replaceId: null, fromHint: false };
   const EDITOR_STORAGE_KEY = 'selflearn-proto-editor-blocks-v2';
@@ -1077,27 +1077,100 @@
     if (lbl) lbl.textContent = '/' + (query || '');
   }
 
+  function getSlashAnchorRect(anchor) {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && anchor) {
+      const node = sel.anchorNode;
+      if (node && (anchor === node || anchor.contains?.(node))) {
+        const r = sel.getRangeAt(0).cloneRange();
+        r.collapse(true);
+        const rects = r.getClientRects();
+        const rect = rects.length ? rects[0] : r.getBoundingClientRect();
+        if (rect && (rect.width || rect.height || rect.top || rect.left)) return rect;
+      }
+    }
+    if (anchor && anchor.getBoundingClientRect) return anchor.getBoundingClientRect();
+    return { top: 96, bottom: 116, left: 48, right: 48, width: 0, height: 20 };
+  }
+
+  function positionSlashMenu() {
+    const menu = document.getElementById('slashMenu');
+    if (!menu || !slashState.open) return;
+
+    const gap = 6;
+    const pad = 8;
+    const preferMax = 320;
+    const minComfort = 160;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const aRect = getSlashAnchorRect(slashState.anchorEl);
+    const spaceBelow = vh - aRect.bottom - pad;
+    const spaceAbove = aRect.top - pad;
+
+    // Measure natural height at preferred max, then decide flip / clamp.
+    menu.style.maxHeight = preferMax + 'px';
+    const naturalH = Math.min(preferMax, Math.max(menu.offsetHeight || 0, menu.scrollHeight || 0, minComfort));
+
+    let placeAbove = false;
+    let avail = spaceBelow;
+    if (spaceBelow >= naturalH + gap) {
+      placeAbove = false;
+      avail = spaceBelow;
+    } else if (spaceAbove >= naturalH + gap) {
+      // Not enough room below → Notion-like flip above.
+      placeAbove = true;
+      avail = spaceAbove;
+    } else if (spaceAbove > spaceBelow) {
+      placeAbove = true;
+      avail = spaceAbove;
+    } else {
+      placeAbove = false;
+      avail = spaceBelow;
+    }
+    // Fit within chosen side / viewport; never force taller than available space.
+    const maxH = Math.min(preferMax, Math.max(96, avail - gap), vh - pad * 2);
+    menu.style.maxHeight = maxH + 'px';
+
+    const mh = Math.min(maxH, menu.offsetHeight || maxH);
+    const mw = menu.offsetWidth || 280;
+
+    let top = placeAbove ? (aRect.top - gap - mh) : (aRect.bottom + gap);
+    // Keep fully on-screen (prefer flip; clamp as last resort).
+    top = Math.max(pad, Math.min(top, vh - pad - mh));
+    let left = aRect.left;
+    left = Math.max(pad, Math.min(left, vw - pad - mw));
+
+    menu.style.top = Math.round(top) + 'px';
+    menu.style.left = Math.round(left) + 'px';
+    menu.dataset.placement = placeAbove ? 'above' : 'below';
+
+    const vis = visibleSlashItems();
+    const selItem = vis[slashState.index];
+    if (selItem) selItem.scrollIntoView({ block: 'nearest' });
+  }
+
+  let slashReposRaf = 0;
+  function scheduleSlashReposition() {
+    if (!slashState.open) return;
+    if (slashReposRaf) cancelAnimationFrame(slashReposRaf);
+    slashReposRaf = requestAnimationFrame(() => {
+      slashReposRaf = 0;
+      positionSlashMenu();
+    });
+  }
+
   function openSlashMenu(opts) {
     opts = opts || {};
     const menu = document.getElementById('slashMenu');
-    const canvas = document.getElementById('editorCanvas');
-    if (!menu || !canvas) return;
+    if (!menu) return;
     slashState.open = true;
     slashState.query = opts.query || '';
     slashState.replaceId = opts.replaceId || null;
     slashState.fromHint = !!opts.fromHint;
+    if (opts.anchorEl) slashState.anchorEl = opts.anchorEl;
     filterSlashMenu(slashState.query);
     menu.classList.add('open');
-    // position near trigger
-    let top = 80, left = 48;
-    if (opts.anchorEl) {
-      const cRect = canvas.getBoundingClientRect();
-      const aRect = opts.anchorEl.getBoundingClientRect();
-      top = aRect.bottom - cRect.top + canvas.scrollTop + 6;
-      left = Math.max(12, aRect.left - cRect.left);
-    }
-    menu.style.top = top + 'px';
-    menu.style.left = left + 'px';
+    positionSlashMenu();
   }
 
   function closeSlashMenu(silent) {
@@ -1105,7 +1178,13 @@
     slashState.query = '';
     slashState.replaceId = null;
     slashState.fromHint = false;
-    document.getElementById('slashMenu')?.classList.remove('open');
+    slashState.anchorEl = null;
+    const menu = document.getElementById('slashMenu');
+    if (menu) {
+      menu.classList.remove('open');
+      menu.removeAttribute('data-placement');
+      menu.style.maxHeight = '';
+    }
   }
 
   function toggleSlash() {
@@ -1475,6 +1554,7 @@
         slashState.index = (slashState.index + 1) % vis.length;
         vis.forEach((x, i) => x.classList.toggle('sel', i === slashState.index));
         vis[slashState.index]?.scrollIntoView({ block: 'nearest' });
+        scheduleSlashReposition();
         return;
       }
       if (e.key === 'ArrowUp') {
@@ -1483,6 +1563,7 @@
         slashState.index = (slashState.index - 1 + vis.length) % vis.length;
         vis.forEach((x, i) => x.classList.toggle('sel', i === slashState.index));
         vis[slashState.index]?.scrollIntoView({ block: 'nearest' });
+        scheduleSlashReposition();
         return;
       }
       if (e.key === 'Enter') {
@@ -1571,6 +1652,9 @@
       if (slashState.open) closeSlashMenu();
     }
   });
+
+  window.addEventListener('resize', scheduleSlashReposition);
+  window.addEventListener('scroll', scheduleSlashReposition, true);
 
   document.getElementById('btnPublish')?.addEventListener('click', () => toast('已發佈上架（示範）'));
   document.getElementById('btnAssignConfirm')?.addEventListener('click', () => {
