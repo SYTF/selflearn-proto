@@ -903,15 +903,8 @@
     </div>
   </div>
   <div class="callout mb12">
-    <strong>建議實作：TipTap + Slash</strong>
-    <span class="small muted"> — 主路徑：喺畫布輸入 <kbd>/</kbd> 開選單（↑↓ Enter 選擇 · Esc 關閉）。工具列／附加列為次要。區塊可用把手拖曳或 ↑↓ 重排，順序保存在示範 editor state。</span>
-  </div>
-
-  <div class="walk-steps" id="attachWalk">
-    <span class="walk-step">1 附加小測</span>
-    <span class="walk-step">2 上載影片</span>
-    <span class="walk-step">3 生字詞庫</span>
-    <span class="small muted" style="align-self:center">點工具列按鈕開啟同頁面板 ↓</span>
+    <strong>建議實作：TipTap + Slash + Modal</strong>
+    <span class="small muted"> — 主路徑：輸入 <kbd>/</kbd> 插入。文字類型（標題／段落／清單／分隔線）即時成 block；小測／影片／圖片／生字開 <strong>modal</strong> 設定後確認，插入緊湊卡片。直接打字（唔使 /）→ 段落 block。工具列為次要。</span>
   </div>
 
   <div class="editor-layout">
@@ -925,86 +918,17 @@
         <button type="button" class="tb" data-tip="段落" data-tb-insert="p">¶</button>
         <button type="button" class="tb" data-tip="清單" data-tb-insert="list">≡</button>
         <div class="tb-sep"></div>
-        <button type="button" class="tb" data-tip="圖片" id="tbImg" data-tb-insert="img">🖼</button>
+        <button type="button" class="tb" data-tip="圖片（modal）" id="tbImg" data-modal="img">🖼</button>
         <button type="button" class="tb" data-tip="分隔線" data-tb-insert="divider">—</button>
         <button type="button" class="tb" data-tip="Slash 選單（次要）" id="btnSlashTb">／</button>
       </div>
 
-      <div class="attach-bar" id="attachBar">
-        <button type="button" class="attach-btn" data-attach="quiz">☑ 附加小測</button>
-        <button type="button" class="attach-btn" data-attach="video">▶ 上載影片</button>
-        <button type="button" class="attach-btn" data-attach="vocab">Aa 生字詞庫</button>
-      </div>
-
-      <!-- Quiz attach panel (inline same page) -->
-      <div class="attach-panel" data-attach="quiz" id="panelQuiz">
-        <div class="attach-help"><strong>學生會喺課件同一頁見到本課小測</strong> — 唔使另開頁。可即場出題，或選用既有小測。</div>
-        <div class="chips mb12">
-          <button type="button" class="chip soft-on" id="quizModeCreate">即場出題</button>
-          <button type="button" class="chip" id="quizModePick">選用既有</button>
-        </div>
-        <div id="quizCreateBox" class="q-builder">
-          <div class="q-card">
-            <div class="between"><span class="q-type">MC 選擇題</span><span class="badge badge-frost">單選</span></div>
-            <div class="field mt8"><label>題幹</label><input value="Which word means「毛毛雨」？" /></div>
-            <div class="stack gap8">
-              <label class="check-item"><input type="radio" name="qa1" /> thunder</label>
-              <label class="check-item"><input type="radio" name="qa1" checked /> drizzle ✓</label>
-              <label class="check-item"><input type="radio" name="qa1" /> breeze</label>
-            </div>
-          </div>
-          <div class="q-card">
-            <div class="between"><span class="q-type">是非題 T/F</span></div>
-            <div class="field mt8"><label>題幹</label><input value="「humid」意思係潮濕。" /></div>
-            <div class="chips mt8">
-              <button type="button" class="chip soft-on">True</button>
-              <button type="button" class="chip">False</button>
-            </div>
-          </div>
-          <div class="q-card">
-            <div class="between"><span class="q-type">填充題</span></div>
-            <div class="field mt8"><label>題幹（用 ____ 表示空位）</label><input value="A light rain is called ____." /></div>
-            <div class="field"><label>答案</label><input value="drizzle" /></div>
-          </div>
-          <div class="row gap8">
-            <button type="button" class="btn btn-ghost btn-sm">＋ 再加一題</button>
-            <button type="button" class="btn btn-primary btn-sm" id="btnAttachQuizCreate">附加至本課</button>
-          </div>
-        </div>
-        <div id="quizPickBox" class="hidden">
-          <div class="check-list">
-            <label class="check-item"><input type="radio" name="pickq" checked /> Unit 3 Check（8 題）</label>
-            <label class="check-item"><input type="radio" name="pickq" /> Weather Words Quick Quiz</label>
-            <label class="check-item"><input type="radio" name="pickq" /> Phonics /th/ Exit Ticket</label>
-          </div>
-          <button type="button" class="btn btn-primary btn-sm mt12" id="btnAttachQuizPick">選用並附加</button>
-        </div>
-        <div id="attachQuizPreview" class="hidden mt12">
-          <div class="badge badge-g">已附加 · 本課小測</div>
-          <p class="small muted mt8">預覽：學生開啟此資源時，小測嵌在頁面下方（見「文章+小測」示範）。</p>
-        </div>
-      </div>
-
-      <!-- Video attach panel -->
-      <div class="attach-panel" data-attach="video" id="panelVideo">
-        <div class="attach-help"><strong>上載或貼上影片 URL</strong> — 嵌在同一課件頁，學生唔使跳去另一個目的地。</div>
-        <div class="field"><label>上載影片檔</label><input type="file" accept="video/*" /></div>
-        <div class="field"><label>或 Embed URL</label><input placeholder="https://youtube.com/… 或串流連結" value="https://example.com/video/phonics-th" /></div>
-        <button type="button" class="btn btn-primary btn-sm" id="btnAttachVideo">附加影片至畫布</button>
-      </div>
-
-      <!-- Vocab attach panel -->
-      <div class="attach-panel" data-attach="vocab" id="panelVocab">
-        <div class="attach-help"><strong>生字詞庫／詞卡</strong> — 加喺同一頁；學生喺課件頁見到詞卡＋可附小測。</div>
-        <div id="vocabRows">
-          <div class="vocab-row"><input value="drizzle" /><input value="毛毛雨" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button></div>
-          <div class="vocab-row"><input value="forecast" /><input value="預報" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button></div>
-          <div class="vocab-row"><input value="humid" /><input value="潮濕" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button></div>
-        </div>
-        <div class="row gap8 mt8">
-          <button type="button" class="btn btn-ghost btn-sm" id="btnAddVocabRow">＋ 加詞</button>
-          <button type="button" class="btn btn-primary btn-sm" id="btnAttachVocab">附加詞庫至畫布</button>
-        </div>
+      <div class="attach-bar attach-bar-secondary" id="attachBar">
+        <span class="attach-bar-label">插入媒體／小測</span>
+        <button type="button" class="attach-btn" data-modal="quiz">☑ 小測</button>
+        <button type="button" class="attach-btn" data-modal="video">▶ 影片</button>
+        <button type="button" class="attach-btn" data-modal="img">🖼 圖片</button>
+        <button type="button" class="attach-btn" data-modal="vocab">Aa 生字</button>
       </div>
 
       <div class="editor-canvas" id="editorCanvas">
@@ -1014,27 +938,28 @@
             <div class="slash-item sel" data-insert="h1" data-keywords="heading title 標題 h1" role="option"><div class="slash-ico">H1</div><div><strong>標題</strong><div class="small muted">Heading</div></div></div>
             <div class="slash-item" data-insert="p" data-keywords="paragraph text 段落 內文" role="option"><div class="slash-ico">¶</div><div><strong>段落</strong><div class="small muted">Paragraph</div></div></div>
             <div class="slash-item" data-insert="list" data-keywords="list bullet 清單 列表 ul" role="option"><div class="slash-ico">≡</div><div><strong>清單</strong><div class="small muted">Bulleted list</div></div></div>
-            <div class="slash-item" data-insert="quiz" data-keywords="quiz attach mc 小測 附加" role="option"><div class="slash-ico" style="background:rgba(94,129,172,.2)">☑</div><div><strong>附加小測</strong><div class="small muted">Attach quiz</div></div></div>
-            <div class="slash-item" data-insert="video" data-keywords="video embed upload 影片" role="option"><div class="slash-ico">▶</div><div><strong>影片 embed／上載</strong><div class="small muted">Video</div></div></div>
-            <div class="slash-item" data-insert="vocab" data-keywords="vocab words 生字 詞庫" role="option"><div class="slash-ico" style="background:rgba(163,190,140,.25)">Aa</div><div><strong>生字</strong><div class="small muted">Vocab cards</div></div></div>
+            <div class="slash-item" data-insert="quiz" data-keywords="quiz attach mc 小測 附加" role="option"><div class="slash-ico" style="background:rgba(94,129,172,.2)">☑</div><div><strong>小測</strong><div class="small muted">Quiz · modal</div></div></div>
+            <div class="slash-item" data-insert="video" data-keywords="video embed upload 影片" role="option"><div class="slash-ico">▶</div><div><strong>影片 embed／上載</strong><div class="small muted">Video · modal</div></div></div>
+            <div class="slash-item" data-insert="img" data-keywords="image picture photo 圖片 插圖 img" role="option"><div class="slash-ico" style="background:rgba(180,142,173,.25)">🖼</div><div><strong>圖片</strong><div class="small muted">Image · modal</div></div></div>
+            <div class="slash-item" data-insert="vocab" data-keywords="vocab words 生字 詞庫" role="option"><div class="slash-ico" style="background:rgba(163,190,140,.25)">Aa</div><div><strong>生字</strong><div class="small muted">Vocab · modal</div></div></div>
             <div class="slash-item" data-insert="divider" data-keywords="divider line 分隔 分隔線 hr" role="option"><div class="slash-ico">—</div><div><strong>分隔線</strong><div class="small muted">Divider</div></div></div>
           </div>
           <div class="slash-empty hidden" id="slashEmpty">無符合項目</div>
         </div>
         <div id="editorBlocks"></div>
-        <div class="editor-add-hint" id="editorAddHint" contenteditable="true" data-placeholder="輸入 / 插入區塊…"></div>
+        <div class="editor-add-hint" id="editorAddHint" contenteditable="true" data-placeholder="輸入文字成段落，或打 / 插入區塊…"></div>
       </div>
     </div>
     <aside class="sidebar-ed">
       <div class="sec-title mb12">設定</div>
       <div class="field"><label>科目</label><select><option>English</option><option>中文</option><option>數學</option><option>常識</option></select></div>
       <div class="field"><label>分類</label><select><option>閱讀 Reading</option><option>生字 Vocab</option><option>影片</option><option>小測</option></select></div>
-      <div class="field"><label>附加狀態</label>
-        <div class="small muted">用上方附加列操作。側欄唔再藏喺單一 dropdown。</div>
+      <div class="field"><label>插入媒體／小測</label>
+        <div class="small muted">用 <kbd>/</kbd> 或次要列開啟 modal 設定後插入緊湊 block。</div>
         <div class="stack gap8 mt8">
-          <span class="badge badge-y">小測：點「附加小測」</span>
-          <span class="badge badge-frost">影片：點「上載影片」</span>
-          <span class="badge badge-g">生字：點「生字詞庫」</span>
+          <span class="badge badge-y">小測 · modal</span>
+          <span class="badge badge-frost">影片／圖片 · modal</span>
+          <span class="badge badge-g">生字 · modal</span>
         </div>
       </div>
       <div class="field"><label>指派範圍</label>
@@ -1289,6 +1214,21 @@
     <button type="button" class="btn btn-ghost btn-sm" id="drawerClose">✕</button>
   </div>
   <div id="drawerBody"></div>
+</div>
+
+
+<!-- Insert modals (quiz / video / image / vocab) -->
+<div class="modal-backdrop" id="insertModalBg" hidden></div>
+<div class="modal" id="insertModal" role="dialog" aria-modal="true" aria-labelledby="insertModalTitle" hidden>
+  <div class="modal-head">
+    <div class="h2" id="insertModalTitle">插入</div>
+    <button type="button" class="btn btn-ghost btn-sm" id="insertModalClose" aria-label="關閉">✕</button>
+  </div>
+  <div class="modal-body" id="insertModalBody"></div>
+  <div class="modal-foot">
+    <button type="button" class="btn btn-ghost btn-sm" id="insertModalCancel">取消</button>
+    <button type="button" class="btn btn-primary btn-sm" id="insertModalConfirm">確認插入</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>

@@ -136,12 +136,14 @@
   let forceEmpty = false;
   let currentPost = 'class';
   let assignSelected = new Map(); // id -> label
-  let attachOpen = null;
   let editorBlocks = null;
   let slashState = { open: false, query: '', index: 0, replaceId: null, fromHint: false };
   let dragBlockId = null;
-  const EDITOR_STORAGE_KEY = 'selflearn-proto-editor-blocks-v1';
-  const SLASH_TYPES = ['h1', 'p', 'list', 'quiz', 'video', 'vocab', 'divider'];
+  let insertModalState = { kind: null, replaceId: null, fromHint: false };
+  const EDITOR_STORAGE_KEY = 'selflearn-proto-editor-blocks-v2';
+  const SLASH_TYPES = ['h1', 'p', 'list', 'quiz', 'video', 'img', 'vocab', 'divider'];
+  const MODAL_INSERT_TYPES = new Set(['quiz', 'video', 'img', 'vocab']);
+  const IMMEDIATE_INSERT_TYPES = new Set(['h1', 'h2', 'p', 'list', 'divider']);
 
   function parseHash() {
     const raw = (location.hash || '#/login').replace(/^#/, '') || '/login';
@@ -234,7 +236,7 @@
       buildContribGraph('classHeat', { weeks: 12, seed: 22, title: '近 12 週完成量' });
     }
     if (pageId === 'editor') {
-      syncAttachWalk();
+      closeInsertModal();
       ensureEditorState();
       renderEditor();
     }
@@ -536,22 +538,174 @@
     if (trig) trig.textContent = assignSelected.size ? `已選 ${assignSelected.size} 個對象` : '選擇班／級／學生…';
   }
 
-  function syncAttachWalk() {
-    const steps = document.querySelectorAll('#attachWalk .walk-step');
-    const map = { quiz: 0, video: 1, vocab: 2 };
-    steps.forEach((s, i) => {
-      s.classList.remove('on', 'done');
-      if (attachOpen && map[attachOpen] === i) s.classList.add('on');
-      else if (attachOpen && map[attachOpen] > i) s.classList.add('done');
-    });
+  function modalTitle(kind) {
+    return { quiz: '插入小測', video: '插入影片', img: '插入圖片', vocab: '插入生字' }[kind] || '插入';
   }
 
-  function openAttach(kind) {
-    attachOpen = attachOpen === kind ? null : kind;
-    document.querySelectorAll('.attach-btn').forEach(b => b.classList.toggle('on', b.dataset.attach === attachOpen));
-    document.querySelectorAll('.attach-panel').forEach(p => p.classList.toggle('open', p.dataset.attach === attachOpen));
-    syncAttachWalk();
-    if (attachOpen) toast('附加面板：' + { quiz: '小測', video: '影片', vocab: '生字詞庫' }[attachOpen]);
+  function buildModalBody(kind) {
+    if (kind === 'quiz') {
+      return `
+        <div class="modal-help"><strong>設定後確認</strong> — 插入緊湊小測 block 到畫布（唔再展開成頁內大面板）。</div>
+        <div class="chips mb12" id="modalQuizModes">
+          <button type="button" class="chip soft-on" data-qmode="create">即場出題</button>
+          <button type="button" class="chip" data-qmode="pick">選用既有</button>
+        </div>
+        <div id="modalQuizCreate" class="q-builder">
+          <div class="field"><label>小測標題</label><input id="mqTitle" value="本課小測" /></div>
+          <div class="q-card">
+            <div class="between"><span class="q-type">MC 選擇題</span><span class="badge badge-frost">單選</span></div>
+            <div class="field mt8"><label>題幹</label><input id="mqPrompt" value="Which word means「毛毛雨」？" /></div>
+            <div class="stack gap8">
+              <label class="check-item"><input type="radio" name="mqa1" /> thunder</label>
+              <label class="check-item"><input type="radio" name="mqa1" checked /> drizzle ✓</label>
+              <label class="check-item"><input type="radio" name="mqa1" /> breeze</label>
+            </div>
+          </div>
+          <div class="q-card">
+            <div class="between"><span class="q-type">是非題 T/F</span></div>
+            <div class="field mt8"><label>題幹</label><input value="「humid」意思係潮濕。" /></div>
+            <div class="chips mt8">
+              <button type="button" class="chip soft-on">True</button>
+              <button type="button" class="chip">False</button>
+            </div>
+          </div>
+          <div class="q-card">
+            <div class="between"><span class="q-type">填充題</span></div>
+            <div class="field mt8"><label>題幹（用 ____ 表示空位）</label><input value="A light rain is called ____." /></div>
+            <div class="field"><label>答案</label><input value="drizzle" /></div>
+          </div>
+        </div>
+        <div id="modalQuizPick" class="hidden">
+          <div class="check-list">
+            <label class="check-item"><input type="radio" name="mpickq" value="Unit 3 Check" checked /> Unit 3 Check（8 題）</label>
+            <label class="check-item"><input type="radio" name="mpickq" value="Weather Words Quick Quiz" /> Weather Words Quick Quiz</label>
+            <label class="check-item"><input type="radio" name="mpickq" value="Phonics /th/ Exit Ticket" /> Phonics /th/ Exit Ticket</label>
+          </div>
+        </div>`;
+    }
+    if (kind === 'video') {
+      return `
+        <div class="modal-help"><strong>上載或貼上 URL</strong> — 確認後插入緊湊影片 block。</div>
+        <div class="field"><label>上載影片檔</label><input type="file" id="mvFile" accept="video/*" /></div>
+        <div class="field"><label>或 Embed URL</label><input id="mvUrl" placeholder="https://youtube.com/… 或串流連結" value="https://example.com/video/phonics-th" /></div>
+        <div class="field"><label>標題</label><input id="mvTitle" value="影片 embed" /></div>`;
+    }
+    if (kind === 'img') {
+      return `
+        <div class="modal-help"><strong>選擇圖片</strong> — 確認後插入緊湊圖片 block／卡片。</div>
+        <div class="field"><label>上載圖片</label><input type="file" id="miFile" accept="image/*" /></div>
+        <div class="field"><label>或圖片路徑／URL</label><input id="miSrc" value="img/login-hero.png" /></div>
+        <div class="field"><label>說明文字</label><input id="miCaption" value="圖片 block · 剛插入" /></div>
+        <div class="chips mb8">
+          <button type="button" class="chip soft-on mi-preset" data-src="img/login-hero.png">封面</button>
+          <button type="button" class="chip mi-preset" data-src="img/subj-eng.png">English</button>
+          <button type="button" class="chip mi-preset" data-src="img/progress.png">進度</button>
+        </div>`;
+    }
+    if (kind === 'vocab') {
+      return `
+        <div class="modal-help"><strong>生字詞庫</strong> — 確認後插入詞卡 block。</div>
+        <div id="modalVocabRows">
+          <div class="vocab-row"><input value="drizzle" /><input value="毛毛雨" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button></div>
+          <div class="vocab-row"><input value="forecast" /><input value="預報" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button></div>
+          <div class="vocab-row"><input value="humid" /><input value="潮濕" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button></div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm mt8" id="modalAddVocabRow">＋ 加詞</button>`;
+    }
+    return '';
+  }
+
+  function openInsertModal(kind, opts) {
+    opts = opts || {};
+    if (!MODAL_INSERT_TYPES.has(kind)) return;
+    insertModalState = {
+      kind,
+      replaceId: opts.replaceId || null,
+      fromHint: !!opts.fromHint
+    };
+    const modal = document.getElementById('insertModal');
+    const bg = document.getElementById('insertModalBg');
+    const title = document.getElementById('insertModalTitle');
+    const body = document.getElementById('insertModalBody');
+    if (!modal || !bg || !body) return;
+    if (title) title.textContent = modalTitle(kind);
+    body.innerHTML = buildModalBody(kind);
+    modal.hidden = false;
+    bg.hidden = false;
+    document.body.classList.add('modal-open');
+    document.querySelectorAll('.attach-btn').forEach(b => b.classList.toggle('on', b.dataset.modal === kind));
+    // focus first field
+    requestAnimationFrame(() => body.querySelector('input:not([type=file]):not([type=radio])')?.focus());
+  }
+
+  function closeInsertModal() {
+    insertModalState = { kind: null, replaceId: null, fromHint: false };
+    document.getElementById('insertModal')?.setAttribute('hidden', '');
+    document.getElementById('insertModalBg')?.setAttribute('hidden', '');
+    const modal = document.getElementById('insertModal');
+    const bg = document.getElementById('insertModalBg');
+    if (modal) modal.hidden = true;
+    if (bg) bg.hidden = true;
+    document.body.classList.remove('modal-open');
+    document.querySelectorAll('.attach-btn').forEach(b => b.classList.remove('on'));
+  }
+
+  function collectModalPayload(kind) {
+    const body = document.getElementById('insertModalBody');
+    if (!body) return {};
+    if (kind === 'quiz') {
+      const pickMode = !document.getElementById('modalQuizPick')?.classList.contains('hidden');
+      if (pickMode) {
+        const picked = body.querySelector('input[name="mpickq"]:checked');
+        const title = picked ? picked.value : '本課小測';
+        return { title, prompt: '（既有小測）' + title };
+      }
+      return {
+        title: body.querySelector('#mqTitle')?.value?.trim() || '本課小測',
+        prompt: body.querySelector('#mqPrompt')?.value?.trim() || 'Which word means「毛毛雨」？'
+      };
+    }
+    if (kind === 'video') {
+      const file = body.querySelector('#mvFile')?.files?.[0];
+      const url = body.querySelector('#mvUrl')?.value?.trim() || '';
+      const title = body.querySelector('#mvTitle')?.value?.trim() || '影片 embed';
+      const sub = file ? ('上載：' + file.name) : (url || '上載／URL');
+      return { title, sub, url };
+    }
+    if (kind === 'img') {
+      const file = body.querySelector('#miFile')?.files?.[0];
+      let src = body.querySelector('#miSrc')?.value?.trim() || 'img/login-hero.png';
+      const caption = body.querySelector('#miCaption')?.value?.trim() || '圖片 block';
+      if (file) {
+        try { src = URL.createObjectURL(file); } catch (e) { /* keep path */ }
+      }
+      return { src, caption };
+    }
+    if (kind === 'vocab') {
+      const words = [...body.querySelectorAll('#modalVocabRows .vocab-row')].map(row => {
+        const inputs = row.querySelectorAll('input');
+        return { en: (inputs[0]?.value || '').trim(), zh: (inputs[1]?.value || '').trim() };
+      }).filter(w => w.en || w.zh);
+      return { words: words.length ? words : [{ en: 'drizzle', zh: '毛毛雨' }] };
+    }
+    return {};
+  }
+
+  function confirmInsertModal() {
+    const kind = insertModalState.kind;
+    if (!kind) return;
+    const payload = collectModalPayload(kind);
+    const opts = {
+      replaceId: insertModalState.replaceId || null,
+      fromHint: insertModalState.fromHint,
+      payload
+    };
+    if (opts.fromHint) {
+      const hint = document.getElementById('editorAddHint');
+      if (hint) hint.textContent = '';
+    }
+    closeInsertModal();
+    insertBlock(kind, opts);
   }
 
   function sparkSVG(arr, opts) {
@@ -691,7 +845,7 @@
       { id: 'b-h1', type: 'h1', content: 'Unit 3 · A Rainy Day' },
       { id: 'b-p1', type: 'p', content: 'It was a rainy Monday morning. Students walked carefully with umbrellas and raincoats. 在此以區塊編輯內文——非 textarea。' },
       { id: 'b-img', type: 'img', src: 'img/subj-eng.png', caption: '圖片 block · 插圖示範' },
-      { id: 'b-p2', type: 'p', content: '輸入 / 可插入標題、段落、清單、小測、影片、生字或分隔線。' }
+      { id: 'b-p2', type: 'p', content: '輸入文字即成段落；或打 / 插入標題、清單、小測、影片、圖片、生字、分隔線。' }
     ];
   }
 
@@ -816,24 +970,25 @@
     toast('已拖曳重排');
   }
 
-  function makeBlock(type) {
+  function makeBlock(type, payload) {
+    payload = payload || {};
     const id = uid('b');
-    if (type === 'h1') return { id, type: 'h1', content: '新標題區塊' };
-    if (type === 'h2') return { id, type: 'h2', content: '小標題' };
-    if (type === 'p') return { id, type: 'p', content: '新段落——點此編輯內文。' };
-    if (type === 'list') return { id, type: 'list', items: ['第一點', '第二點'] };
+    if (type === 'h1') return { id, type: 'h1', content: payload.content != null ? payload.content : '新標題區塊' };
+    if (type === 'h2') return { id, type: 'h2', content: payload.content != null ? payload.content : '小標題' };
+    if (type === 'p') return { id, type: 'p', content: payload.content != null ? payload.content : '新段落——點此編輯內文。' };
+    if (type === 'list') return { id, type: 'list', items: payload.items || ['第一點', '第二點'] };
     if (type === 'divider') return { id, type: 'divider' };
-    if (type === 'img') return { id, type: 'img', src: 'img/login-hero.png', caption: '圖片 block · 剛插入' };
-    if (type === 'video') return { id, type: 'video', title: '影片 embed', sub: '上載／URL · 新插入' };
-    if (type === 'vocab') return { id, type: 'vocab', words: [{ en: 'sunny', zh: '晴朗' }, { en: 'humid', zh: '潮濕' }] };
-    if (type === 'quiz' || type === 'mc') return { id, type: 'quiz', title: '本課小測', prompt: 'Which word means「毛毛雨」？' };
-    return { id, type: 'p', content: '新段落' };
+    if (type === 'img') return { id, type: 'img', src: payload.src || 'img/login-hero.png', caption: payload.caption || '圖片 block · 剛插入' };
+    if (type === 'video') return { id, type: 'video', title: payload.title || '影片 embed', sub: payload.sub || '上載／URL · 新插入', url: payload.url || '' };
+    if (type === 'vocab') return { id, type: 'vocab', words: payload.words || [{ en: 'sunny', zh: '晴朗' }, { en: 'humid', zh: '潮濕' }] };
+    if (type === 'quiz' || type === 'mc') return { id, type: 'quiz', title: payload.title || '本課小測', prompt: payload.prompt || 'Which word means「毛毛雨」？' };
+    return { id, type: 'p', content: payload.content != null ? payload.content : '新段落' };
   }
 
   function insertBlock(type, opts) {
     opts = opts || {};
     ensureEditorState();
-    const block = makeBlock(type === 'mc' ? 'quiz' : type);
+    const block = makeBlock(type === 'mc' ? 'quiz' : type, opts.payload || opts);
     let idx = editorBlocks.length;
     if (opts.replaceId) {
       const i = editorBlocks.findIndex(b => b.id === opts.replaceId);
@@ -854,18 +1009,39 @@
     }
     persistEditorState();
     renderEditor();
-    if (type === 'quiz') {
-      if (attachOpen !== 'quiz') openAttach('quiz');
-      else syncAttachWalk();
-    }
-    toast('已插入：' + ({ h1: '標題', p: '段落', list: '清單', quiz: '附加小測', video: '影片', vocab: '生字', divider: '分隔線', img: '圖片', mc: '小測' }[type] || type));
-    // focus editable
+    toast('已插入：' + ({ h1: '標題', p: '段落', list: '清單', quiz: '小測', video: '影片', vocab: '生字', divider: '分隔線', img: '圖片', mc: '小測' }[type] || type));
     const row = document.querySelector(`.block-row[data-id="${block.id}"] [data-block-body]`);
     if (row && row.isContentEditable) {
       row.focus();
       placeCaretEnd(row);
     }
     return block;
+  }
+
+  /** Text types insert immediately; media/quiz open modal. */
+  function requestInsert(type, opts) {
+    opts = opts || {};
+    const t = type === 'mc' ? 'quiz' : type;
+    if (MODAL_INSERT_TYPES.has(t)) {
+      if (opts.fromHint) {
+        const hint = document.getElementById('editorAddHint');
+        if (hint) hint.textContent = '';
+      }
+      // Clear /query text in the block being replaced so modal configure is the only UI
+      if (opts.replaceId) {
+        const b = editorBlocks && editorBlocks.find(x => x.id === opts.replaceId);
+        if (b && isEditableType(b.type)) {
+          if (b.type === 'list') b.items = ['清單項目'];
+          else b.content = '';
+          persistEditorState();
+          const body = document.querySelector(`.block-row[data-id="${opts.replaceId}"] [data-block-body]`);
+          if (body) body.textContent = b.type === 'list' ? '' : '';
+        }
+      }
+      openInsertModal(t, opts);
+      return null;
+    }
+    return insertBlock(t, opts);
   }
 
   function placeCaretEnd(el) {
@@ -952,11 +1128,11 @@
     if (fromHint) {
       const hint = document.getElementById('editorAddHint');
       if (hint) hint.textContent = '';
-      insertBlock(type);
+      requestInsert(type, { fromHint: true });
     } else if (replaceId) {
-      insertBlock(type, { replaceId });
+      requestInsert(type, { replaceId });
     } else {
-      insertBlock(type);
+      requestInsert(type);
     }
   }
 
@@ -1061,25 +1237,16 @@
   });
 
   // quiz create vs pick
-  document.getElementById('quizModeCreate')?.addEventListener('click', () => {
-    document.getElementById('quizModeCreate')?.classList.add('soft-on');
-    document.getElementById('quizModePick')?.classList.remove('soft-on', 'on');
-    document.getElementById('quizCreateBox')?.classList.remove('hidden');
-    document.getElementById('quizPickBox')?.classList.add('hidden');
-  });
-  document.getElementById('quizModePick')?.addEventListener('click', () => {
-    document.getElementById('quizModePick')?.classList.add('soft-on');
-    document.getElementById('quizModeCreate')?.classList.remove('soft-on', 'on');
-    document.getElementById('quizCreateBox')?.classList.add('hidden');
-    document.getElementById('quizPickBox')?.classList.remove('hidden');
-  });
-
   document.querySelector('.editor-toolbar')?.addEventListener('click', e => {
+    const modalBtn = e.target.closest('[data-modal]');
+    if (modalBtn) {
+      requestInsert(modalBtn.dataset.modal);
+      return;
+    }
     const tb = e.target.closest('[data-tb-insert]');
     if (!tb) return;
-    insertBlock(tb.dataset.tbInsert);
+    requestInsert(tb.dataset.tbInsert);
   });
-  // legacy id still works via data-tb-insert on #tbImg
 
   // admin user tabs
   document.getElementById('userTabs')?.addEventListener('click', e => {
@@ -1135,38 +1302,46 @@
     document.getElementById('msTrigger')?.classList.remove('open');
   });
 
-  // editor attach bar
+  // secondary insert bar → open modals (no inline panels)
   document.getElementById('attachBar')?.addEventListener('click', e => {
-    const btn = e.target.closest('.attach-btn');
+    const btn = e.target.closest('[data-modal]');
     if (!btn) return;
-    openAttach(btn.dataset.attach);
+    requestInsert(btn.dataset.modal);
   });
-  document.getElementById('btnAttachQuizCreate')?.addEventListener('click', () => {
-    insertBlock('quiz');
-    document.getElementById('attachQuizPreview')?.classList.remove('hidden');
-  });
-  document.getElementById('btnAttachQuizPick')?.addEventListener('click', () => {
-    insertBlock('quiz');
-    document.getElementById('attachQuizPreview')?.classList.remove('hidden');
-  });
-  document.getElementById('btnAttachVideo')?.addEventListener('click', () => {
-    toast('已附加影片（上載／URL）· 同頁預覽');
-    insertBlock('video');
-  });
-  document.getElementById('btnAttachVocab')?.addEventListener('click', () => {
-    toast('已附加生字詞庫 · 學生同頁見詞卡');
-    insertBlock('vocab');
-  });
-  document.getElementById('btnAddVocabRow')?.addEventListener('click', () => {
-    const host = document.getElementById('vocabRows');
-    if (!host) return;
-    const row = document.createElement('div');
-    row.className = 'vocab-row';
-    row.innerHTML = '<input placeholder="英文／原文" /><input placeholder="中文／解釋" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button>';
-    host.appendChild(row);
-  });
-  document.getElementById('vocabRows')?.addEventListener('click', e => {
-    if (e.target.closest('.vocab-del')) e.target.closest('.vocab-row')?.remove();
+
+  // insert modal events
+  document.getElementById('insertModalClose')?.addEventListener('click', closeInsertModal);
+  document.getElementById('insertModalCancel')?.addEventListener('click', closeInsertModal);
+  document.getElementById('insertModalBg')?.addEventListener('click', closeInsertModal);
+  document.getElementById('insertModalConfirm')?.addEventListener('click', confirmInsertModal);
+  document.getElementById('insertModalBody')?.addEventListener('click', e => {
+    const mode = e.target.closest('[data-qmode]');
+    if (mode) {
+      const create = mode.dataset.qmode === 'create';
+      document.querySelectorAll('#modalQuizModes .chip').forEach(c => c.classList.toggle('soft-on', c === mode));
+      document.getElementById('modalQuizCreate')?.classList.toggle('hidden', !create);
+      document.getElementById('modalQuizPick')?.classList.toggle('hidden', create);
+      return;
+    }
+    if (e.target.closest('#modalAddVocabRow')) {
+      const host = document.getElementById('modalVocabRows');
+      if (!host) return;
+      const row = document.createElement('div');
+      row.className = 'vocab-row';
+      row.innerHTML = '<input placeholder="英文／原文" /><input placeholder="中文／解釋" /><button type="button" class="btn btn-ghost btn-sm vocab-del">刪</button>';
+      host.appendChild(row);
+      return;
+    }
+    if (e.target.closest('.vocab-del')) {
+      e.target.closest('.vocab-row')?.remove();
+      return;
+    }
+    const preset = e.target.closest('.mi-preset');
+    if (preset) {
+      const src = document.getElementById('miSrc');
+      if (src) src.value = preset.dataset.src || src.value;
+      document.querySelectorAll('.mi-preset').forEach(c => c.classList.toggle('soft-on', c === preset));
+    }
   });
 
   // admin subject CRUD demo
@@ -1257,11 +1432,20 @@
       return;
     }
     if (hint) {
-      const q = slashQueryFromText(hint.textContent || '');
+      const raw = (hint.textContent || '').replace(/\u200b/g, '').replace(/\u00a0/g, ' ');
+      const q = slashQueryFromText(raw);
       if (q !== null) {
         openSlashMenu({ query: q, fromHint: true, anchorEl: hint });
       } else if (slashState.open && slashState.fromHint) {
         closeSlashMenu();
+      }
+      // Plain typing (not starting with /) → paragraph block immediately
+      const trimmedStart = raw.replace(/^\s+/, '');
+      if (trimmedStart && !trimmedStart.startsWith('/')) {
+        const content = raw.replace(/\s+$/, '');
+        hint.textContent = '';
+        closeSlashMenu();
+        insertBlock('p', { payload: { content } });
       }
     }
   });
@@ -1304,6 +1488,19 @@
       if (e.key === 'Enter') {
         e.preventDefault();
         applySlashSelection();
+        return;
+      }
+    }
+
+    // Enter on add-hint without slash → paragraph (or empty paragraph)
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const hint = e.target.id === 'editorAddHint' ? e.target : null;
+      if (hint && !slashState.open) {
+        e.preventDefault();
+        const raw = (hint.textContent || '').replace(/\u200b/g, '').replace(/\u00a0/g, ' ').trim();
+        hint.textContent = '';
+        if (raw.startsWith('/')) return;
+        insertBlock('p', { payload: { content: raw || '新段落——點此編輯內文。' } });
         return;
       }
     }
@@ -1366,8 +1563,12 @@
   });
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && slashState.open) {
-      closeSlashMenu();
+    if (e.key === 'Escape') {
+      if (insertModalState.kind) {
+        closeInsertModal();
+        return;
+      }
+      if (slashState.open) closeSlashMenu();
     }
   });
 

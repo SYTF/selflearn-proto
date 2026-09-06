@@ -282,14 +282,27 @@ a.btn{text-decoration:none}
 .ms-foot{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-top:1px solid var(--snow1);background:var(--snow0);position:sticky;bottom:0}
 .ms-foot .btn{flex:1;justify-content:center}
 
-/* —— Editor attach panels —— */
-.attach-bar{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid var(--snow1);background:linear-gradient(180deg,#fff,var(--snow0))}
-.attach-btn{border:1px dashed var(--frost2);background:#fff;padding:7px 11px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;color:var(--frost0);display:inline-flex;align-items:center;gap:6px}
-.attach-btn:hover,.attach-btn.on{background:rgba(94,129,172,.1);border-style:solid}
-.attach-panel{display:none;border-bottom:1px solid var(--snow1);background:var(--snow0);padding:12px 14px}
-.attach-panel.open{display:block}
-.attach-panel .attach-help{font-size:12px;color:var(--ink3);margin-bottom:10px;padding:8px 10px;border-radius:8px;background:rgba(235,203,139,.25);border:1px solid rgba(235,203,139,.5)}
-.attach-panel .attach-help strong{color:#8a6a20}
+/* —— Editor secondary insert bar (opens modals; no inline panels) —— */
+.attach-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 10px;border-bottom:1px solid var(--snow1);background:var(--snow0)}
+.attach-bar-secondary{opacity:.95}
+.attach-bar-label{font-size:11px;font-weight:700;color:var(--ink3);margin-right:4px}
+.attach-btn{border:1px solid var(--snow2);background:#fff;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--ink2);display:inline-flex;align-items:center;gap:5px}
+.attach-btn:hover,.attach-btn.on{background:rgba(94,129,172,.1);border-color:var(--frost2);color:var(--frost0)}
+.attach-panel{display:none!important} /* demoted: use modal instead */
+
+/* —— Insert modal (Nord Light) —— */
+.modal-backdrop{position:fixed;inset:0;background:rgba(46,52,64,.4);z-index:90;backdrop-filter:blur(2px)}
+.modal-backdrop[hidden],.modal[hidden]{display:none!important}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100vw - 24px));max-height:min(86vh,720px);display:flex;flex-direction:column;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(46,52,64,.28);border:1px solid var(--snow2);z-index:95;overflow:hidden}
+.modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--snow1);background:var(--snow0)}
+.modal-body{padding:14px 16px;overflow:auto;flex:1}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--snow1);background:#fff}
+.modal-help{font-size:12px;color:var(--ink3);margin-bottom:12px;padding:8px 10px;border-radius:8px;background:rgba(94,129,172,.08);border:1px solid rgba(94,129,172,.22)}
+.modal-help strong{color:var(--frost0)}
+.modal .q-builder{display:grid;gap:8px}
+.modal .q-card{background:var(--snow0);border:1px solid var(--snow1);border-radius:12px;padding:10px 12px}
+.modal .check-list{display:grid;gap:6px}
+body.modal-open{overflow:hidden}
 .q-builder{display:grid;gap:8px}
 .q-card{background:#fff;border:1px solid var(--snow2);border-radius:10px;padding:10px}
 .q-card .q-type{font-size:11px;font-weight:800;color:var(--frost0)}
