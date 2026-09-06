@@ -94,6 +94,39 @@
       <button type="button" class="btn btn-ghost btn-sm" data-go="/progress">查看我的進度 →</button>
     </div>
 
+    <div class="card s3 kpi">
+      <div class="t">本週完成</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--frost0)">18</div>
+        <span class="spark-host" data-spark="3,5,4,6,7,8,9" data-color="#5E81AC" data-fill="1"></span>
+      </div>
+      <div class="small muted">較上週 <span class="delta up">+3</span></div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">學習時數</div>
+      <div class="kpi-row">
+        <div class="n">3.2<span class="unit">h</span></div>
+        <span class="spark-host" data-spark="20,35,28,42,38,50,45" data-color="#88C0D0" data-fill="1"></span>
+      </div>
+      <div class="small muted">近 7 日趨勢</div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">準時提交</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--aurora-g)">88%</div>
+        <span class="spark-host" data-spark="72,75,78,80,84,86,88" data-color="#A3BE8C" data-fill="1"></span>
+      </div>
+      <div class="small muted">連續上升</div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">待完成</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--aurora-o)">7</div>
+        <span class="spark-host" data-spark="12,11,10,9,8,8,7" data-color="#D08770" data-fill="1"></span>
+      </div>
+      <div class="small muted">逐步清減 <span class="delta down">↓</span></div>
+    </div>
+
     <div class="s12"><div class="sec-title">科目</div><div class="sec-sub">以科目進入分類與教材 · 非「作業列表」</div></div>
 
     <div class="card subj-tile s3" data-go="/subject/chi">
@@ -166,7 +199,7 @@
   <div class="row mb12 gap8" style="align-items:center">
     <button type="button" class="btn btn-outline btn-sm" id="btnEmptyDemo">示範空狀態</button>
     <button type="button" class="btn btn-ghost btn-sm" id="btnClearEmpty">重設篩選</button>
-    <span class="small muted">關掉「已指派／全部」或按示範空狀態可看到 empty.png</span>
+    <span class="small muted">關掉「已指派／全部」或按示範空狀態可看到 empty.jpg</span>
   </div>
 
   <div class="empty-state hidden" id="matEmpty">
@@ -356,6 +389,40 @@
     <button type="button" class="chip" data-s="ma">數學</button>
     <button type="button" class="chip" data-s="gs">常識</button>
   </div>
+  <div class="bento mb12" id="progKpis">
+    <div class="card s3 kpi">
+      <div class="t">完成份數</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--frost0)" id="kpiDoneN">18</div>
+        <span class="spark-host" data-spark="2,3,2,4,3,5,4" data-color="#5E81AC" data-fill="1"></span>
+      </div>
+      <div class="small muted">每日完成量</div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">學習時數</div>
+      <div class="kpi-row">
+        <div class="n" id="kpiHoursN">3.2<span class="unit">h</span></div>
+        <span class="spark-host" data-spark="25,40,30,55,35,60,48" data-color="#88C0D0" data-fill="1"></span>
+      </div>
+      <div class="small muted">分鐘級累積</div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">平均分</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--aurora-g)" id="kpiScoreN">84</div>
+        <span class="spark-host" data-spark="70,72,75,78,80,82,84" data-color="#A3BE8C" data-fill="1"></span>
+      </div>
+      <div class="small muted">小測趨勢</div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">連續天數</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--aurora-p)">4</div>
+        <span class="spark-host" data-spark="1,0,2,3,2,3,4" data-color="#B48EAD" data-fill="1"></span>
+      </div>
+      <div class="small muted">streak · 本週</div>
+    </div>
+  </div>
   <div class="bento">
     <div class="card s4 card-pad">
       <div class="between"><span class="sec-title" style="margin:0">完成率</span><span class="small muted" id="progRangeLbl">本週</span></div>
@@ -424,10 +491,38 @@
     </div>
   </div>
   <div class="bento">
-    <div class="card s3 kpi"><div class="t">待跟進學生</div><div class="n" style="color:var(--aurora-r)">7</div><div class="small muted">未打開 ≥ 3 天</div></div>
-    <div class="card s3 kpi"><div class="t">本週完成率</div><div class="n" style="color:var(--frost0)">64%</div><div class="small muted">5A · English</div></div>
-    <div class="card s3 kpi"><div class="t">已指派教材</div><div class="n">12</div><div class="small muted">進行中 5</div></div>
-    <div class="card s3 kpi"><div class="t">平均分數</div><div class="n" style="color:var(--aurora-g)">81</div><div class="small muted">MC／小測</div></div>
+    <div class="card s3 kpi">
+      <div class="t">待跟進學生</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--aurora-r)">7</div>
+        <span class="spark-host" data-spark="3,4,5,6,5,7,7" data-color="#BF616A" data-fill="1"></span>
+      </div>
+      <div class="small muted">未打開 ≥ 3 天 · <span class="delta up" style="color:var(--aurora-r)">↑ 風險</span></div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">本週完成率</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--frost0)">64%</div>
+        <span class="spark-host" data-spark="48,52,55,58,60,62,64" data-color="#5E81AC" data-fill="1"></span>
+      </div>
+      <div class="small muted">5A · English · <span class="delta up">+5pt</span></div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">已指派教材</div>
+      <div class="kpi-row">
+        <div class="n">12</div>
+        <span class="spark-host" data-spark="6,7,8,9,10,11,12" data-color="#81A1C1" data-fill="1"></span>
+      </div>
+      <div class="small muted">進行中 5 · 本週新增 3</div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">平均分數</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--aurora-g)">81</div>
+        <span class="spark-host" data-spark="74,76,75,78,79,80,81" data-color="#A3BE8C" data-fill="1"></span>
+      </div>
+      <div class="small muted">MC／小測 · 穩步上升</div>
+    </div>
     <div class="card s7" style="display:grid;grid-template-columns:1.1fr 1fr">
       <img src="img/teacher-analytics.jpg" alt="" style="height:100%;min-height:180px;object-fit:cover" />
       <div class="card-pad">
@@ -676,10 +771,38 @@
     <img src="img/hero-continue.jpg" alt="" />
   </div>
   <div class="bento">
-    <div class="card s3 kpi"><div class="t">活躍學生</div><div class="n">612</div><div class="small muted">近 7 日</div></div>
-    <div class="card s3 kpi"><div class="t">活躍老師</div><div class="n">48</div><div class="small muted">已上架 126 份</div></div>
-    <div class="card s3 kpi"><div class="t">完成率</div><div class="n" style="color:var(--frost0)">71%</div><div class="small muted">已指派內容</div></div>
-    <div class="card s3 kpi"><div class="t">平均分</div><div class="n" style="color:var(--aurora-g)">79</div><div class="small muted">全校小測</div></div>
+    <div class="card s3 kpi">
+      <div class="t">活躍學生</div>
+      <div class="kpi-row">
+        <div class="n">612</div>
+        <span class="spark-host" data-spark="520,540,555,570,590,600,612" data-color="#5E81AC" data-fill="1"></span>
+      </div>
+      <div class="small muted">近 7 日 · <span class="delta up">+8%</span></div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">活躍老師</div>
+      <div class="kpi-row">
+        <div class="n">48</div>
+        <span class="spark-host" data-spark="40,42,43,45,46,47,48" data-color="#81A1C1" data-fill="1"></span>
+      </div>
+      <div class="small muted">已上架 126 份</div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">完成率</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--frost0)">71%</div>
+        <span class="spark-host" data-spark="62,64,66,67,68,70,71" data-color="#88C0D0" data-fill="1"></span>
+      </div>
+      <div class="small muted">已指派內容</div>
+    </div>
+    <div class="card s3 kpi">
+      <div class="t">平均分</div>
+      <div class="kpi-row">
+        <div class="n" style="color:var(--aurora-g)">79</div>
+        <span class="spark-host" data-spark="74,75,76,76,77,78,79" data-color="#A3BE8C" data-fill="1"></span>
+      </div>
+      <div class="small muted">全校小測</div>
+    </div>
     <div class="card s8 card-pad">
       <div class="sec-title">科目用量（示範）</div>
       <div class="chart-box" style="height:120px">

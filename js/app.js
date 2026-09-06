@@ -258,14 +258,46 @@
       .join('');
   }
 
-  function sparkSVG(arr) {
-    const w = 72, h = 24;
-    const max = Math.max(...arr, 1);
-    const step = w / (arr.length - 1 || 1);
-    const d = arr
-      .map((v, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)},${(h - 2 - (v / max) * (h - 4)).toFixed(1)}`)
-      .join(' ');
-    return `<svg class="spark" viewBox="0 0 ${w} ${h}"><path d="${d}" fill="none" stroke="#5E81AC" stroke-width="1.5"/></svg>`;
+  function sparkSVG(arr, opts) {
+    opts = opts || {};
+    const w = opts.w || 72;
+    const h = opts.h || 24;
+    const color = opts.color || '#5E81AC';
+    const fill = !!opts.fill;
+    const pad = 2;
+    const nums = (arr || []).map(Number);
+    if (!nums.length) return '';
+    const max = Math.max(...nums, 1);
+    const min = Math.min(...nums, 0);
+    const span = Math.max(max - min, 1);
+    const step = w / (nums.length - 1 || 1);
+    const pts = nums.map((v, i) => {
+      const x = i * step;
+      const y = h - pad - ((v - min) / span) * (h - pad * 2);
+      return [x, y];
+    });
+    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+    const last = pts[pts.length - 1];
+    const area = fill
+      ? `<path d="${line} L${last[0].toFixed(1)},${h} L0,${h} Z" fill="${color}" fill-opacity=".14"/>`
+      : '';
+    const uid = 'sg' + Math.abs(Math.round(last[0] * 100 + last[1] * 10 + nums[0] * 7));
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${area}<path d="${line}" fill="none" stroke="${color}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.2" fill="${color}"/></svg>`;
+  }
+
+  function hydrateSparks(root) {
+    (root || document).querySelectorAll('.spark-host[data-spark]').forEach(el => {
+      const arr = String(el.dataset.spark || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(Number);
+      const color = el.dataset.color || '#5E81AC';
+      const fill = el.dataset.fill === '1' || el.dataset.fill === 'true';
+      const w = Number(el.dataset.w) || 78;
+      const h = Number(el.dataset.h) || 28;
+      el.innerHTML = sparkSVG(arr, { color, fill, w, h });
+    });
   }
 
   function renderReport(range) {
@@ -286,7 +318,7 @@
         return `<tr class="student-row" data-idx="${idx}">
       <td><strong>${s.name}</strong>${s.risk ? ' <span class="badge badge-r">未打開</span>' : ''}</td>
       <td>${opened}</td><td>${done}</td><td>${score}</td>
-      <td>${sparkSVG(s.spark)}</td>
+      <td>${sparkSVG(s.spark, { color: s.risk ? '#BF616A' : '#5E81AC', fill: true, w: 72, h: 24 })}</td>
       <td class="small muted">詳情 ›</td>
     </tr>
     <tr class="detail-row hidden" id="detail-${idx}"><td colspan="6" style="background:var(--snow0);padding:12px">
@@ -313,10 +345,7 @@
         <div class="between mt8"><span class="muted small">Done</span><strong>${s.done}</strong></div>
         <div class="between mt8"><span class="muted small">Score</span><strong>${s.score}</strong></div>
       </div>
-      <div><div class="small muted mb8">兩週趨勢</div>${sparkSVG(s.spark.concat(s.spark)).replace(
-        'class="spark"',
-        'class="spark" style="width:100%;height:40px"'
-      )}</div>
+      <div><div class="small muted mb8">兩週趨勢</div>${sparkSVG(s.spark.concat(s.spark), { color: s.risk ? '#BF616A' : '#5E81AC', fill: true, w: 280, h: 40 }).replace('class="spark"', 'class="spark" style="width:100%;height:40px"')}</div>
       <img src="img/mascot.jpg" style="border-radius:10px;height:100px;width:100%;object-fit:cover" alt=""/>
       <button class="btn btn-primary btn-sm" id="drawerAssign">改為個人指派</button>
     </div>`;
@@ -460,7 +489,7 @@
     document.querySelectorAll('#subjFilter .chip').forEach(x => x.classList.remove('on'));
     // leave none on to simulate empty — mark assigned off intentionally
     applySubjectFilters();
-    toast('示範：空狀態 empty.png');
+    toast('示範：空狀態 empty.jpg');
   });
 
   document.getElementById('btnClearEmpty')?.addEventListener('click', () => {
@@ -485,6 +514,8 @@
   document.getElementById('btnPublish')?.addEventListener('click', () => toast('已發佈上架（示範）'));
   document.getElementById('btnAssignConfirm')?.addEventListener('click', () => toast('已確認指派（示範）'));
   document.getElementById('btnMarkDone')?.addEventListener('click', () => toast('已標記完成 ✓'));
+
+  hydrateSparks();
 
   // boot
   if (!location.hash || location.hash === '#') {
