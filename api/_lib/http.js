@@ -58,6 +58,7 @@ function pathParts(req) {
   const fromUrl = splitSegs(url.pathname.replace(/^\/api\/?/, ''));
   const q = req.query && req.query.path;
   const fromQuery = q == null || q === '' ? [] : splitSegs(q);
+  // vercel.json rewrite is required: Other/static only maps one /api segment natively.
   const parts = fromUrl.length ? fromUrl : fromQuery;
   return { parts, search: url.searchParams };
 }
