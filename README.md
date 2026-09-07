@@ -43,8 +43,9 @@ Username/password login is unchanged. EdCity / Google buttons stay visual until 
 | Method | Path | Auth | Body / notes |
 | --- | --- | --- | --- |
 | `GET` | `/api/auth/sso-config` | none | `{ providers: [{ id, enabled, label }] }` — **never** credentials |
-| `GET` | `/api/admin/sso-providers` | admin session | list including `credentials` JSON for the Admin UI |
-| `PATCH` | `/api/admin/sso-providers/:id` | admin session | `{ enabled?, label?, credentials? }` — `credentials` is **shallow-merged** into the stored JSON (toggle-only PATCH leaves secrets). Non-admin → 403. |
+| `GET` | `/api/admin/sso-providers` | admin session | list; `credentials` is **masked** (`{ client_secret: { set: true } }`) |
+| `GET` | `/api/admin/sso-providers/:id` | admin session | one provider, same mask |
+| `PATCH` | `/api/admin/sso-providers/:id` | admin session | `{ enabled?, label?, credentials? }` — PATCH body uses **real** values; stored JSON is **shallow-merged**. GET/PATCH responses never echo secrets. Non-admin → 403. |
 
 Seeded keys: `edcity`, `google` (`enabled: false`, `credentials: {}`). Do not commit real secrets.
 

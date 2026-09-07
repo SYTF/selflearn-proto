@@ -86,7 +86,15 @@ async function handleAdminSsoProviders(req, res, sql, id) {
       SELECT id, label, enabled, credentials, updated_at, updated_by
       FROM sso_providers ORDER BY id
     `;
-    return http.send(res, 200, { providers: rows });
+    return http.send(res, 200, { providers: rows.map(sso.adminSsoProvider) });
+  }
+  if (req.method === 'GET' && id) {
+    const row = (await sql`
+      SELECT id, label, enabled, credentials, updated_at, updated_by
+      FROM sso_providers WHERE id = ${String(id)}
+    `)[0];
+    if (!row) return http.fail(res, 404, '找不到 SSO 供應商');
+    return http.send(res, 200, { provider: sso.adminSsoProvider(row) });
   }
   if ((req.method === 'PATCH' || req.method === 'PUT') && id) {
     const key = String(id);
@@ -112,7 +120,7 @@ async function handleAdminSsoProviders(req, res, sql, id) {
       WHERE id = ${key}
       RETURNING id, label, enabled, credentials, updated_at, updated_by
     `;
-    return http.send(res, 200, { provider: rows[0] });
+    return http.send(res, 200, { provider: sso.adminSsoProvider(rows[0]) });
   }
   http.fail(res, 405, '方法不支援');
 }

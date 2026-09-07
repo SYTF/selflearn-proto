@@ -1,7 +1,7 @@
 const { gradeQuiz, answersMatch } = require('../api/_lib/grade');
 const { canWriteResource, canManageSchool, canAssign, canViewResource } = require('../api/_lib/access');
 const { pathParts } = require('../api/_lib/http');
-const { publicSsoProvider, mergeCredentials } = require('../api/_lib/sso');
+const { publicSsoProvider, adminSsoProvider, maskCredentials, mergeCredentials } = require('../api/_lib/sso');
 
 let failed = 0;
 function assert(cond, msg) {
@@ -71,6 +71,17 @@ assert(!Object.prototype.hasOwnProperty.call(leaked, 'credentials'), 'public sso
 assert(JSON.stringify(mergeCredentials({ app_code: 'a' }, { client_id: 'b' })) === JSON.stringify({ app_code: 'a', client_id: 'b' }), 'credentials shallow merge');
 assert(mergeCredentials({ app_code: 'keep' }, undefined).app_code === 'keep', 'omit credentials keeps current');
 assert(mergeCredentials({ a: 1 }, ['x']) === null, 'credentials array rejected');
+assert(JSON.stringify(maskCredentials({})) === '{}', 'empty credentials mask is {}');
+assert(JSON.stringify(maskCredentials({ client_id: 'abc', client_secret: '', app_code: '  ' })) === JSON.stringify({
+  client_id: { set: true }, client_secret: { set: false }, app_code: { set: false }
+}), 'mask filled vs empty keys');
+assert(JSON.stringify(maskCredentials({ client_secret: 'real-secret' })).indexOf('real-secret') < 0, 'mask omits secret values');
+const adminRow = adminSsoProvider({
+  id: 'google', label: 'Google', enabled: true,
+  credentials: { client_secret: 'nope' }, updated_at: 't', updated_by: 1
+});
+assert(adminRow.credentials.client_secret.set === true && !Object.prototype.hasOwnProperty.call(adminRow.credentials.client_secret, 'value'), 'admin GET uses {set}');
+assert(JSON.stringify(adminRow).indexOf('nope') < 0, 'admin GET never echoes secret');
 
 if (failed) {
   console.error('\n' + failed + ' failed');
