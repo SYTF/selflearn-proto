@@ -252,6 +252,9 @@
       a.classList.toggle('active', a.getAttribute('data-go') === route || (route === '/heatmap' && a.getAttribute('data-go') === '/admin/usage'));
     });
     window.scrollTo(0, 0);
+    if (window.SelfLearnLive && window.SelfLearnLive.onRender) {
+      window.SelfLearnLive.onRender(pageId, route);
+    }
   }
 
   function renderNav() {
@@ -1387,9 +1390,10 @@
     if (go) {
       e.preventDefault();
       const r = go.dataset.go;
-      if (r === 'role-student') return enterRole('student');
-      if (r === 'role-teacher') return enterRole('teacher');
-      if (r === 'role-admin') return enterRole('admin');
+      if (r === 'oauth-demo') return toast('示範環境請用帳號／密碼登入');
+      if (r === 'role-student') return window.SelfLearnLive?.demoLogin ? window.SelfLearnLive.demoLogin('student') : enterRole('student');
+      if (r === 'role-teacher') return window.SelfLearnLive?.demoLogin ? window.SelfLearnLive.demoLogin('teacher') : enterRole('teacher');
+      if (r === 'role-admin') return window.SelfLearnLive?.demoLogin ? window.SelfLearnLive.demoLogin('admin') : enterRole('admin');
       navigate(r);
       return;
     }
@@ -1466,7 +1470,10 @@
     });
   });
 
-  document.getElementById('btnAddClass')?.addEventListener('click', () => toast('新增班別（示範）'));
+  document.getElementById('btnAddClass')?.addEventListener('click', () => {
+    if (window.SelfLearnLive?.addClass) return window.SelfLearnLive.addClass();
+    toast('新增班別（示範）');
+  });
 
   // multi-select popover
   document.getElementById('msTrigger')?.addEventListener('click', e => {
@@ -1550,16 +1557,17 @@
     }
   });
 
-  // admin subject CRUD demo
   document.getElementById('subjList')?.addEventListener('click', e => {
     const hide = e.target.closest('[data-subj-hide]');
     if (hide) {
+      if (window.SelfLearnLive?.toggleSubject) return window.SelfLearnLive.toggleSubject(hide);
       hide.closest('.subj-item')?.classList.toggle('hidden-subj');
       toast(hide.closest('.subj-item')?.classList.contains('hidden-subj') ? '已隱藏科目' : '已重新顯示');
       return;
     }
     const ren = e.target.closest('[data-subj-rename]');
     if (ren) {
+      if (window.SelfLearnLive?.renameSubject) return window.SelfLearnLive.renameSubject(ren);
       const name = ren.closest('.subj-item')?.querySelector('.subj-name');
       if (name) {
         const next = prompt('重新命名科目', name.textContent);
@@ -1568,6 +1576,7 @@
     }
   });
   document.getElementById('btnAddSubj')?.addEventListener('click', () => {
+    if (window.SelfLearnLive?.addSubject) return window.SelfLearnLive.addSubject();
     const name = prompt('新增科目名稱', '音樂');
     if (!name) return;
     const list = document.getElementById('subjList');
@@ -1798,12 +1807,23 @@
   window.addEventListener('resize', scheduleSlashReposition);
   window.addEventListener('scroll', scheduleSlashReposition, true);
 
-  document.getElementById('btnPublish')?.addEventListener('click', () => toast('已發佈上架（示範）'));
+  document.getElementById('btnPublish')?.addEventListener('click', () => {
+    if (window.SelfLearnLive?.publish) return window.SelfLearnLive.publish();
+    toast('已發佈上架（示範）');
+  });
+  document.getElementById('btnSaveDraft')?.addEventListener('click', () => {
+    if (window.SelfLearnLive?.saveDraft) return window.SelfLearnLive.saveDraft();
+    toast('已儲存草稿（示範）');
+  });
   document.getElementById('btnAssignConfirm')?.addEventListener('click', () => {
+    if (window.SelfLearnLive?.assign) return window.SelfLearnLive.assign();
     if (!assignSelected.size) return toast('請先選擇指派對象');
     toast('已確認指派（示範）· ' + TEACHER_POSTS[currentPost].label + ' · ' + assignSelected.size + ' 個對象');
   });
-  document.getElementById('btnMarkDone')?.addEventListener('click', () => toast('已標記完成 ✓'));
+  document.getElementById('btnMarkDone')?.addEventListener('click', () => {
+    if (window.SelfLearnLive?.markDone) return window.SelfLearnLive.markDone();
+    toast('已標記完成 ✓');
+  });
 
 
   /* —— inline quiz (same-page attach) —— */
@@ -1825,6 +1845,7 @@
     const submit = e.target.closest('.quiz-submit');
     if (submit) {
       const root = submit.closest('[data-quiz]') || submit.closest('.quiz-attach');
+      if (window.SelfLearnLive?.submitQuiz) return window.SelfLearnLive.submitQuiz(root);
       const id = root?.dataset.quiz || 'quiz';
       const answered = root ? root.querySelectorAll('.quiz-opt.selected').length : 0;
       const fills = root ? [...root.querySelectorAll('.quiz-fill')].filter(i => i.value.trim()).length : 0;
@@ -1840,6 +1861,27 @@
   });
 
   hydrateSparks();
+
+  window.SelfLearnProto = {
+    enterRole,
+    navigate,
+    toast,
+    getRole: () => currentRole,
+    setRole: (r) => { currentRole = r; },
+    getPost: () => currentPost,
+    applyTeacherPost,
+    renderReport,
+    hydrateSparks,
+    renderEditor,
+    persistEditorState,
+    getEditorBlocks: () => editorBlocks,
+    setEditorBlocks: (b) => { editorBlocks = b; },
+    getAssignSelected: () => assignSelected,
+    applySubjectFilters,
+    buildContribGraph,
+    STUDENTS,
+    setStudents: (arr) => { STUDENTS.splice(0, STUDENTS.length, ...arr); }
+  };
 
   // boot
   if (!location.hash || location.hash === '#') {

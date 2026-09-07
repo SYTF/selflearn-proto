@@ -1,0 +1,17 @@
+{
+  "name": "selflearn-proto",
+  "private": true,
+  "description": "Cyber Book / 自學無窮 — static proto wired to Neon + Vercel",
+  "scripts": {
+    "migrate": "node scripts/migrate.js",
+    "seed": "node scripts/seed.js",
+    "check": "node scripts/check.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
+    "bcryptjs": "^2.4.3"
+  }
+}

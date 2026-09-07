@@ -39,9 +39,15 @@
       </div>
       <div class="login-body">
         <p class="muted small mb12">請以學校帳號登入。示範環境可直接跳轉角色。</p>
+        <form id="loginForm" class="stack gap8 mb12">
+          <div class="field" style="margin:0"><label>帳號</label><input id="loginUser" name="username" autocomplete="username" /></div>
+          <div class="field" style="margin:0"><label>密碼</label><input id="loginPass" name="password" type="password" autocomplete="current-password" /></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">登入</button>
+          <div class="small" id="loginErr" hidden style="color:var(--aurora-r)"></div>
+        </form>
         <div class="stack gap8">
-          <button type="button" class="btn btn-edcity" style="width:100%;justify-content:center" data-go="role-student">🔷 以 EdCity 登入</button>
-          <button type="button" class="btn btn-google" style="width:100%;justify-content:center" data-go="role-student">G 以 Google 登入</button>
+          <button type="button" class="btn btn-edcity" style="width:100%;justify-content:center" data-go="oauth-demo">🔷 以 EdCity 登入</button>
+          <button type="button" class="btn btn-google" style="width:100%;justify-content:center" data-go="oauth-demo">G 以 Google 登入</button>
         </div>
         <div class="mt12 small muted" style="text-align:center">— 示範快速進入 —</div>
         <div class="demo-roles">
@@ -59,7 +65,7 @@
   <div class="between mb12">
     <div>
       <div class="eyebrow">今日 · 已指派優先</div>
-      <div class="h1">你好，陳同學</div>
+      <div class="h1" id="homeHello">你好，陳同學</div>
       <div class="sec-sub">獨立自學 · 先完成老師指派內容</div>
     </div>
     <div class="chips" id="homeFilter">
@@ -952,8 +958,8 @@
     </div>
     <aside class="sidebar-ed">
       <div class="sec-title mb12">設定</div>
-      <div class="field"><label>科目</label><select><option>English</option><option>中文</option><option>數學</option><option>常識</option></select></div>
-      <div class="field"><label>分類</label><select><option>閱讀 Reading</option><option>生字 Vocab</option><option>影片</option><option>小測</option></select></div>
+      <div class="field"><label>科目</label><select id="edSubject"><option>English</option><option>中文</option><option>數學</option><option>常識</option></select></div>
+      <div class="field"><label>分類</label><select id="edCategory"><option>閱讀 Reading</option><option>生字 Vocab</option><option>影片</option><option>小測</option></select></div>
       <div class="field"><label>插入媒體／小測</label>
         <div class="small muted">用 <kbd>/</kbd> 或次要列開啟 modal 設定後插入緊湊 block。</div>
         <div class="stack gap8 mt8">
@@ -966,12 +972,12 @@
         <select><option>稍後喺「指派」用多選</option><option>草稿不上架</option></select>
       </div>
       <div class="field"><label>可見性</label>
-        <select><option>已指派可見</option><option>科目圖書館（需另開權限）</option></select>
+        <select id="edVisibility"><option value="assigned">已指派可見</option><option value="library">科目圖書館（需另開權限）</option></select>
       </div>
       <div class="field"><label>封面</label>
         <img src="img/login-hero.png" alt="" style="border-radius:8px;height:72px;width:100%;object-fit:cover" />
       </div>
-      <button type="button" class="btn btn-outline btn-sm" style="width:100%;justify-content:center">儲存草稿</button>
+      <button type="button" class="btn btn-outline btn-sm" id="btnSaveDraft" style="width:100%;justify-content:center">儲存草稿</button>
     </aside>
   </div>
 </section>
@@ -1003,7 +1009,7 @@
     <div class="card s3 kpi">
       <div class="t">活躍學生</div>
       <div class="kpi-row">
-        <div class="n">612</div>
+        <div class="n" id="adminKpiStudents">612</div>
         <span class="spark-host" data-spark="520,540,555,570,590,600,612" data-color="#5E81AC" data-fill="1"></span>
       </div>
       <div class="small muted">近 7 日 · <span class="delta up">+8%</span></div>
@@ -1011,7 +1017,7 @@
     <div class="card s3 kpi">
       <div class="t">活躍老師</div>
       <div class="kpi-row">
-        <div class="n">48</div>
+        <div class="n" id="adminKpiTeachers">48</div>
         <span class="spark-host" data-spark="40,42,43,45,46,47,48" data-color="#81A1C1" data-fill="1"></span>
       </div>
       <div class="small muted">已上架 126 份</div>
@@ -1019,7 +1025,7 @@
     <div class="card s3 kpi">
       <div class="t">完成率</div>
       <div class="kpi-row">
-        <div class="n" style="color:var(--frost0)">71%</div>
+        <div class="n" id="adminKpiCompletion" style="color:var(--frost0)">71%</div>
         <span class="spark-host" data-spark="62,64,66,67,68,70,71" data-color="#88C0D0" data-fill="1"></span>
       </div>
       <div class="small muted">已指派內容</div>
@@ -1027,7 +1033,7 @@
     <div class="card s3 kpi">
       <div class="t">平均分</div>
       <div class="kpi-row">
-        <div class="n" style="color:var(--aurora-g)">79</div>
+        <div class="n" id="adminKpiAvg" style="color:var(--aurora-g)">79</div>
         <span class="spark-host" data-spark="74,75,76,76,77,78,79" data-color="#A3BE8C" data-fill="1"></span>
       </div>
       <div class="small muted">全校小測</div>
@@ -1059,6 +1065,7 @@
       <div class="h1">用戶管理</div>
       <div class="sec-sub">學生／老師／Admin · 角色與職務（班主任／級主任／科主任）</div>
     </div>
+    <button type="button" class="btn btn-primary btn-sm" id="btnAddUser">＋ 新增用戶</button>
   </div>
   <div class="admin-subnav">
     <button type="button" class="pchip" data-admin-nav data-go="/admin">系統總覽</button>
@@ -1234,5 +1241,6 @@
 <div class="toast" id="toast"></div>
 
 <script src="js/app.js"></script>
+<script src="js/live.js"></script>
 </body>
 </html>
