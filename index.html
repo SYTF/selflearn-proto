@@ -11,11 +11,6 @@
 <header class="app-chrome" id="chrome" style="display:none">
   <div class="chrome-inner">
     <div class="brand"><div class="brand-mark">學</div>自學無窮</div>
-    <div class="role-switch" id="roleSwitch">
-      <button type="button" class="role-btn active" data-role="student">學生</button>
-      <button type="button" class="role-btn" data-role="teacher">老師</button>
-      <button type="button" class="role-btn" data-role="admin">Admin</button>
-    </div>
     <nav class="page-chips" id="navChips"></nav>
     <div class="avatar" id="avatarLbl">學</div>
   </div>
@@ -38,22 +33,16 @@
         </div>
       </div>
       <div class="login-body">
-        <p class="muted small mb12">請以學校帳號登入。示範環境可直接跳轉角色。</p>
+        <p class="muted small mb12">請以學校帳號登入。</p>
         <form id="loginForm" class="stack gap8 mb12">
           <div class="field" style="margin:0"><label>帳號</label><input id="loginUser" name="username" autocomplete="username" /></div>
           <div class="field" style="margin:0"><label>密碼</label><input id="loginPass" name="password" type="password" autocomplete="current-password" /></div>
           <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">登入</button>
           <div class="small" id="loginErr" hidden style="color:var(--aurora-r)"></div>
         </form>
-        <div class="stack gap8">
-          <button type="button" class="btn btn-edcity" style="width:100%;justify-content:center" data-go="oauth-demo">🔷 以 EdCity 登入</button>
-          <button type="button" class="btn btn-google" style="width:100%;justify-content:center" data-go="oauth-demo">G 以 Google 登入</button>
-        </div>
-        <div class="mt12 small muted" style="text-align:center">— 示範快速進入 —</div>
-        <div class="demo-roles">
-          <button type="button" class="btn btn-ghost btn-sm" data-go="role-student">學生</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-go="role-teacher">老師</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-go="role-admin">Admin</button>
+        <div class="stack gap8" id="ssoLogin" hidden>
+          <button type="button" class="btn btn-edcity" style="width:100%;justify-content:center" id="btnSsoEdcity" data-sso="edcity" hidden>🔷 以 EdCity 登入</button>
+          <button type="button" class="btn btn-google" style="width:100%;justify-content:center" id="btnSsoGoogle" data-sso="google" hidden>G 以 Google 登入</button>
         </div>
       </div>
     </div>
@@ -668,25 +657,15 @@
     <div>
       <div class="eyebrow">老師工作台</div>
       <div class="h1">Dashboard</div>
-      <div class="sec-sub">職務可兼任 · 切換後版面與能力明顯不同</div>
+      <div class="sec-sub" id="teacherSub">依登入職務顯示工作台</div>
     </div>
-    <div class="chips">
-      <button type="button" class="btn btn-primary btn-sm" data-go="/assign">＋ 指派教材</button>
-      <button type="button" class="btn btn-ghost btn-sm" data-go="/report">報表</button>
+    <div class="chips" id="teacherHeadActions">
+      <button type="button" class="btn btn-primary btn-sm js-need-assign" data-go="/assign">＋ 指派教材</button>
+      <button type="button" class="btn btn-ghost btn-sm js-need-class" data-go="/report">報表</button>
     </div>
   </div>
 
-  <div class="between mb12" style="flex-wrap:wrap;gap:10px">
-    <div>
-      <div class="small muted mb8" style="font-weight:700">職務切換</div>
-      <div class="post-switch" id="postSwitch">
-        <button type="button" class="post-btn active" data-post="class">班主任<span class="post-hint">本班</span></button>
-        <button type="button" class="post-btn" data-post="grade">級主任<span class="post-hint">P1–P6 級</span></button>
-        <button type="button" class="post-btn" data-post="subject">科主任<span class="post-hint">科目</span></button>
-      </div>
-    </div>
-    <div class="post-banner" id="postBanner" style="flex:1;min-width:220px"></div>
-  </div>
+  <div class="post-banner" id="postBanner"></div>
 
   <div class="bento mb12" id="teacherKpis"></div>
 
@@ -713,7 +692,6 @@
           <div class="stack gap8 mt8">
             <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/assign">📋 指派到本班／個別</button>
             <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/report">📊 班進度報表</button>
-            <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/editor">✎ 上架教材</button>
           </div>
         </div>
       </div>
@@ -782,6 +760,24 @@
       </div>
     </div>
   </div>
+
+  <!-- 一班老師 panel（唯讀科目瀏覽） -->
+  <div class="post-panel" data-post="subject_teacher">
+    <div class="bento">
+      <div class="card s8 card-pad">
+        <div class="sec-title">科目瀏覽 · 唯讀</div>
+        <p class="small muted mb12">一班老師可瀏覽已上架教材，不可編輯上架或指派。</p>
+        <button type="button" class="btn btn-primary btn-sm" data-go="/subject/eng">開啟科目瀏覽 →</button>
+      </div>
+      <div class="card s4">
+        <img src="img/subj-eng.png" alt="" style="height:100px;width:100%;object-fit:cover" />
+        <div class="card-pad">
+          <div class="sec-title">職務</div>
+          <p class="small muted mt8">職務由系統帳號設定，無法在此切換。</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- ========== ASSIGN ========== -->
@@ -791,11 +787,6 @@
       <button type="button" class="btn btn-ghost btn-sm mb8" data-go="/teacher">← Dashboard</button>
       <div class="h1">指派教材</div>
       <div class="sec-sub" id="assignPostHint">多選班／級／個別學生 · 依職務顯示不同選項</div>
-    </div>
-    <div class="post-switch" id="postSwitchAssign">
-      <button type="button" class="post-btn active" data-post="class">班主任</button>
-      <button type="button" class="post-btn" data-post="grade">級主任</button>
-      <button type="button" class="post-btn" data-post="subject">科主任</button>
     </div>
   </div>
   <div class="bento mb12">
@@ -845,17 +836,10 @@
       <div class="h1" id="reportHeading">班報表 · 5A</div>
       <div class="sec-sub" id="reportSub">本班名冊 · 未打開優先 · sparkline</div>
     </div>
-    <div class="stack gap8" style="align-items:flex-end">
-      <div class="post-switch">
-        <button type="button" class="post-btn active" data-post="class">班主任</button>
-        <button type="button" class="post-btn" data-post="grade">級主任</button>
-        <button type="button" class="post-btn" data-post="subject">科主任</button>
-      </div>
-      <div class="chips" id="repRange">
-        <button type="button" class="chip on" data-range="week">本週</button>
-        <button type="button" class="chip" data-range="month">本月</button>
-        <button type="button" class="chip" data-range="term">學期</button>
-      </div>
+    <div class="chips" id="repRange">
+      <button type="button" class="chip on" data-range="week">本週</button>
+      <button type="button" class="chip" data-range="month">本月</button>
+      <button type="button" class="chip" data-range="term">學期</button>
     </div>
   </div>
   <div class="chips mb12" id="repSubj">
@@ -997,6 +981,7 @@
     <button type="button" class="pchip" data-admin-nav data-go="/admin/classes">班級／班別</button>
     <button type="button" class="pchip" data-admin-nav data-go="/admin/subjects">科目</button>
     <button type="button" class="pchip" data-admin-nav data-go="/admin/usage">使用量統計</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/sso">SSO 設定</button>
   </div>
   <div class="kpi-strip mb12">
     <img src="img/login-hero.png" alt="" />
@@ -1045,6 +1030,7 @@
         <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/admin/classes">🏫 班級／班別</button>
         <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/admin/subjects">📚 科目（CRUD／排序／隱藏）</button>
         <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/admin/usage">📈 系統使用量統計</button>
+        <button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" data-go="/admin/sso">🔐 SSO 設定（EdCity／Google）</button>
       </div>
     </div>
     <div class="card s4">
@@ -1063,7 +1049,7 @@
     <div>
       <div class="eyebrow">系統</div>
       <div class="h1">用戶管理</div>
-      <div class="sec-sub">學生／老師／Admin · 角色與職務（班主任／級主任／科主任）</div>
+      <div class="sec-sub">學生／老師／Admin · 每位老師一個職務（teacher_subrole）</div>
     </div>
     <button type="button" class="btn btn-primary btn-sm" id="btnAddUser">＋ 新增用戶</button>
   </div>
@@ -1073,6 +1059,7 @@
     <button type="button" class="pchip" data-admin-nav data-go="/admin/classes">班級／班別</button>
     <button type="button" class="pchip" data-admin-nav data-go="/admin/subjects">科目</button>
     <button type="button" class="pchip" data-admin-nav data-go="/admin/usage">使用量統計</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/sso">SSO 設定</button>
   </div>
   <div class="user-tabs chips mb12" id="userTabs">
     <button type="button" class="chip on" data-utab="students">學生</button>
@@ -1097,7 +1084,7 @@
       </table>
     </div>
   </div>
-  <p class="small muted mt12">示範：老師可兼任多個非互斥職務（班主任／級主任／科主任）。</p>
+  <p class="small muted mt12">每位老師一個職務：班主任、科主任或一班老師，由資料庫 teacher_subrole 決定。</p>
 </section>
 
 <!-- ========== ADMIN CLASSES ========== -->
@@ -1116,6 +1103,7 @@
     <button type="button" class="pchip active" data-admin-nav data-go="/admin/classes">班級／班別</button>
     <button type="button" class="pchip" data-admin-nav data-go="/admin/subjects">科目</button>
     <button type="button" class="pchip" data-admin-nav data-go="/admin/usage">使用量統計</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/sso">SSO 設定</button>
   </div>
   <div class="card">
     <div class="table-wrap">
@@ -1149,6 +1137,7 @@
     <button type="button" class="pchip" data-admin-nav data-go="/admin/classes">班級／班別</button>
     <button type="button" class="pchip active" data-admin-nav data-go="/admin/subjects">科目</button>
     <button type="button" class="pchip" data-admin-nav data-go="/admin/usage">使用量統計</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/sso">SSO 設定</button>
   </div>
   <div class="card card-pad">
     <div class="crud-toolbar">
@@ -1184,6 +1173,7 @@
     <button type="button" class="pchip" data-admin-nav data-go="/admin/classes">班級／班別</button>
     <button type="button" class="pchip" data-admin-nav data-go="/admin/subjects">科目</button>
     <button type="button" class="pchip active" data-admin-nav data-go="/admin/usage">使用量統計</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/sso">SSO 設定</button>
   </div>
   <div class="stat-grid mb12">
     <div class="card kpi"><div class="t">DAU</div><div class="n">412</div><div class="small muted">今日活躍</div></div>
@@ -1207,6 +1197,61 @@
         <p class="small muted mt8" id="heatPeak">星期二 10:00–11:00 · 電腦室用量最高</p>
         <div class="progress-bar mt12"><i id="heatBar" style="width:78%"></i></div>
         <div class="small muted mt8">相對尖峰負載 <span id="heatPct">78%</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== ADMIN SSO ========== -->
+<section class="page" id="pg-admin-sso">
+  <div class="between mb12">
+    <div>
+      <div class="eyebrow">系統</div>
+      <div class="h1">SSO 設定</div>
+      <div class="sec-sub">EdCity／Google · 啟用後登入頁才顯示按鈕 · 密鑰存於資料庫並遮罩</div>
+    </div>
+  </div>
+  <div class="admin-subnav">
+    <button type="button" class="pchip" data-admin-nav data-go="/admin">系統總覽</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/users">用戶管理</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/classes">班級／班別</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/subjects">科目</button>
+    <button type="button" class="pchip" data-admin-nav data-go="/admin/usage">使用量統計</button>
+    <button type="button" class="pchip active" data-admin-nav data-go="/admin/sso">SSO 設定</button>
+  </div>
+  <div class="callout mb12">
+    <strong>P0 · 設定與登入閘門</strong>
+    <span class="small muted"> — 此頁儲存啟用狀態與憑證。完整 OAuth 回呼為後續項目，不會在此模擬正式登入。按鈕若未填完整會提示「設定未完整」。</span>
+  </div>
+  <div class="bento">
+    <div class="card s6 card-pad" data-sso-card="edcity">
+      <div class="between mb8">
+        <div class="h2">EdCity</div>
+        <label class="sso-switch"><input type="checkbox" data-sso-enabled="edcity" /> 啟用</label>
+      </div>
+      <p class="small muted mb12">未啟用時，登入頁不顯示 EdCity 按鈕。</p>
+      <div class="sso-fields" data-sso-fields="edcity" hidden>
+        <div class="field"><label>App Code</label><input data-sso-field="app_code" autocomplete="off" /></div>
+        <div class="field"><label>App Secret</label><input type="password" data-sso-field="app_secret" placeholder="已設定則留空以保留" autocomplete="new-password" /></div>
+        <div class="field"><label>Redirect URI</label><input data-sso-field="redirect_uri" readonly /></div>
+        <div class="field"><label>Scopes（選填）</label><input data-sso-field="scopes" placeholder="例如 profile" /></div>
+        <div class="small muted mb8" data-sso-secret-hint="edcity"></div>
+        <button type="button" class="btn btn-primary btn-sm" data-sso-save="edcity" style="width:100%;justify-content:center">儲存 EdCity</button>
+      </div>
+    </div>
+    <div class="card s6 card-pad" data-sso-card="google">
+      <div class="between mb8">
+        <div class="h2">Google</div>
+        <label class="sso-switch"><input type="checkbox" data-sso-enabled="google" /> 啟用</label>
+      </div>
+      <p class="small muted mb12">未啟用時，登入頁不顯示 Google 按鈕。</p>
+      <div class="sso-fields" data-sso-fields="google" hidden>
+        <div class="field"><label>Client ID</label><input data-sso-field="client_id" autocomplete="off" /></div>
+        <div class="field"><label>Client Secret</label><input type="password" data-sso-field="client_secret" placeholder="已設定則留空以保留" autocomplete="new-password" /></div>
+        <div class="field"><label>Redirect URI</label><input data-sso-field="redirect_uri" readonly /></div>
+        <div class="field"><label>Scopes（選填）</label><input data-sso-field="scopes" placeholder="例如 email profile" /></div>
+        <div class="small muted mb8" data-sso-secret-hint="google"></div>
+        <button type="button" class="btn btn-primary btn-sm" data-sso-save="google" style="width:100%;justify-content:center">儲存 Google</button>
       </div>
     </div>
   </div>

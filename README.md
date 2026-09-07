@@ -34,11 +34,21 @@ Password for **all** accounts: `Demo123!`
 | `s24041` | 張詠心 | 學生 |
 | `s24055` | 周浩然 | 學生 |
 
-Login page: type username/password, or use **示範快速進入** (學生 → `s24012`, 老師 → `t.wang`, Admin → `admin`).
+Login page: username/password only, unless Admin enables EdCity/Google in **SSO 設定**.
+
+Nav follows the logged-in account (`role` + `teacher_subrole`). There is no header role switcher and no teacher identity switcher.
+
+| Role | Nav |
+| --- | --- |
+| Admin | 總覽／用戶／班級／科目／使用量／SSO 設定／登出 |
+| 科主任 (`subject_head`) | 總覽／本科資源／編輯上架／指派／登出 |
+| 班主任 (`class_teacher`) | 總覽／本班進度／指派／登出 |
+| 一班老師 (`subject_teacher`) | 總覽／科目瀏覽／登出 |
+| 學生 | 首頁／科目／我的進度／登出 |
 
 ## SSO config (Frontend)
 
-Username/password login is unchanged. EdCity / Google buttons stay visual until a provider is enabled.
+Username/password login is unchanged. EdCity / Google **login buttons render only when that provider is `enabled`**. Admin `#/admin/sso` reads/writes `/api/admin/sso-providers`. List responses mask credentials as `{ set: true|false }` — the form never expects full secrets back. OAuth handshake is **not** implemented (P0: settings + gate UI; button click toasts「設定未完整」).
 
 | Method | Path | Auth | Body / notes |
 | --- | --- | --- | --- |
@@ -84,7 +94,5 @@ Open the printed localhost URL (hash routes: `#/login`).
 
 ## Gaps vs prototype chrome
 
-- EdCity / Google buttons stay visual; they toast to use username/password.
-- Header role switcher is unchanged (proto chrome). API permissions still follow the logged-in account.
-- 級主任 panel remains a proto layout switch — not one of the 10 seeded accounts.
+- OAuth callback is a follow-up: login SSO buttons toast「設定未完整」and do not mint a session.
 - Canonical article/video/vocab/quiz pages keep proto markup (seed content matches). New editor publishes show up on the English subject grid.
