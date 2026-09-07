@@ -1,29 +1,90 @@
 /* 自學無窮 · clickable prototype */
 (function () {
-  const NAV = {
-    student: [
-      { route: '/home', label: '科目主頁' },
-      { route: '/subject/eng', label: 'English' },
-      { route: '/article/1', label: '文章+小測' },
-      { route: '/video/1', label: '影片+小測' },
-      { route: '/resource/vocab', label: '生字+小測' },
-      { route: '/quiz/1', label: '獨立小測' },
-      { route: '/progress', label: '我的進度' }
-    ],
-    teacher: [
-      { route: '/teacher', label: 'Dashboard' },
-      { route: '/assign', label: '指派' },
-      { route: '/report', label: '報表' },
-      { route: '/editor', label: '上架／編輯' }
-    ],
-    admin: [
-      { route: '/admin', label: '系統總覽' },
-      { route: '/admin/users', label: '用戶管理' },
-      { route: '/admin/classes', label: '班級' },
-      { route: '/admin/subjects', label: '科目' },
-      { route: '/admin/usage', label: '使用量' }
-    ]
-  };
+  function subjectRoute(user) {
+    const slug = (user && user.subject_slug) || 'eng';
+    return '/subject/' + slug;
+  }
+
+  function navItems(user) {
+    if (!user) return [];
+    const logout = { route: '/logout', label: '登出' };
+    if (user.role === 'admin') {
+      return [
+        { route: '/admin', label: '總覽' },
+        { route: '/admin/users', label: '用戶' },
+        { route: '/admin/classes', label: '班級' },
+        { route: '/admin/subjects', label: '科目' },
+        { route: '/admin/usage', label: '使用量' },
+        { route: '/admin/sso', label: 'SSO 設定' },
+        logout
+      ];
+    }
+    if (user.role === 'teacher' && user.teacher_subrole === 'subject_head') {
+      return [
+        { route: '/teacher', label: '總覽' },
+        { route: subjectRoute(user), label: '本科資源' },
+        { route: '/editor', label: '編輯上架' },
+        { route: '/assign', label: '指派' },
+        logout
+      ];
+    }
+    if (user.role === 'teacher' && user.teacher_subrole === 'class_teacher') {
+      return [
+        { route: '/teacher', label: '總覽' },
+        { route: '/report', label: '本班進度' },
+        { route: '/assign', label: '指派' },
+        logout
+      ];
+    }
+    if (user.role === 'teacher') {
+      return [
+        { route: '/teacher', label: '總覽' },
+        { route: subjectRoute(user), label: '科目瀏覽' },
+        logout
+      ];
+    }
+    return [
+      { route: '/home', label: '首頁' },
+      { route: '/subject/eng', label: '科目' },
+      { route: '/progress', label: '我的進度' },
+      logout
+    ];
+  }
+
+  function homeForUser(user) {
+    if (!user) return '/login';
+    if (user.role === 'admin') return '/admin';
+    if (user.role === 'teacher') return '/teacher';
+    return '/home';
+  }
+
+  function postForUser(user) {
+    if (!user || user.role !== 'teacher') return 'class';
+    if (user.teacher_subrole === 'subject_head') return 'subject';
+    if (user.teacher_subrole === 'class_teacher') return 'class';
+    return 'subject_teacher';
+  }
+
+  function routeAllowed(user, route) {
+    if (!user) return route === '/login';
+    if (route === '/login' || route === '/logout') return true;
+    if (user.role === 'admin') return route === '/admin' || route.startsWith('/admin/');
+    const browse = route.startsWith('/subject') || route.startsWith('/article')
+      || route.startsWith('/video') || route.startsWith('/resource') || route.startsWith('/quiz');
+    if (user.role === 'student') {
+      return route === '/home' || route === '/progress' || browse;
+    }
+    if (user.role === 'teacher') {
+      if (route === '/teacher') return true;
+      if (browse) return true;
+      if (route === '/assign' || route === '/report') {
+        return user.teacher_subrole === 'class_teacher' || user.teacher_subrole === 'subject_head';
+      }
+      if (route === '/editor') return user.teacher_subrole === 'subject_head';
+      return false;
+    }
+    return false;
+  }
 
   const TEACHER_POSTS = {
     class: {
@@ -67,6 +128,15 @@
       ],
       reportTitle: '科報表 · English',
       assignDefault: 'subject'
+    },
+    subject_teacher: {
+      id: 'subject_teacher',
+      label: '一班老師',
+      scope: '科目瀏覽',
+      navHint: '教材唯讀',
+      kpis: [],
+      reportTitle: '科目瀏覽',
+      assignDefault: 'class'
     }
   };
 
@@ -131,6 +201,7 @@
     { name: '吳嘉欣', opened: 9, done: 8, score: 95, spark: [6, 7, 8, 7, 9, 8, 9], risk: false }
   ];
 
+  let currentUser = null;
   let currentRole = 'student';
   let currentRoute = '/login';
   let forceEmpty = false;
@@ -181,25 +252,17 @@
     if (route === '/admin/classes') return 'admin-classes';
     if (route === '/admin/subjects') return 'admin-subjects';
     if (route === '/admin/usage' || route === '/heatmap') return 'admin-usage';
+    if (route === '/admin/sso') return 'admin-sso';
     return 'login';
-  }
-
-  function roleForRoute(route) {
-    if (['/teacher', '/assign', '/report', '/editor'].some(p => route === p || route.startsWith(p))) return 'teacher';
-    if (route === '/admin' || route.startsWith('/admin/') || route === '/heatmap') return 'admin';
-    if (route === '/login') return currentRole;
-    return 'student';
   }
 
   function render(route) {
     currentRoute = route;
-    const pageId = pageIdFromRoute(route);
-    if (pageId !== 'login') {
-      const inferred = roleForRoute(route);
-      if (inferred !== currentRole && route !== '/login') {
-        // keep explicit role switch; only auto-switch when navigating via chips of another role
-      }
+    if (currentUser && !routeAllowed(currentUser, route) && route !== '/login') {
+      navigate(homeForUser(currentUser));
+      return;
     }
+    const pageId = pageIdFromRoute(route);
 
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const el = document.getElementById('pg-' + pageId);
@@ -210,13 +273,13 @@
     el.classList.add('active');
 
     const chrome = document.getElementById('chrome');
-    chrome.style.display = pageId === 'login' ? 'none' : '';
+    chrome.style.display = pageId === 'login' || !currentUser ? 'none' : '';
 
-    document.querySelectorAll('.role-btn').forEach(b =>
-      b.classList.toggle('active', b.dataset.role === currentRole)
-    );
-    document.getElementById('avatarLbl').textContent =
-      currentRole === 'student' ? '學' : currentRole === 'teacher' ? '師' : '管';
+    const av = document.getElementById('avatarLbl');
+    if (av && currentUser) {
+      av.textContent =
+        currentUser.role === 'student' ? '學' : currentUser.role === 'teacher' ? '師' : '管';
+    }
 
     if (pageId !== 'login') renderNav();
 
@@ -259,11 +322,12 @@
 
   function renderNav() {
     const nav = document.getElementById('navChips');
-    nav.innerHTML = NAV[currentRole]
+    if (!nav) return;
+    nav.innerHTML = navItems(currentUser)
       .map(i => {
         const active =
           currentRoute === i.route ||
-          (i.route === '/admin' && currentRoute === '/admin') ||
+          (i.route === '/admin' && (currentRoute === '/admin' || currentRoute === '/admin/')) ||
           (i.route.startsWith('/admin/') && currentRoute === i.route) ||
           (i.route === '/admin/usage' && currentRoute === '/heatmap') ||
           (i.route.startsWith('/subject') && currentRoute.startsWith('/subject')) ||
@@ -276,9 +340,15 @@
       .join('');
   }
 
+  function setSession(user) {
+    currentUser = user || null;
+    currentRole = user ? user.role : 'student';
+    currentPost = postForUser(user);
+  }
+
   function enterRole(role) {
-    currentRole = role;
-    navigate(ROLE_HOME[role]);
+    if (role) currentRole = role;
+    navigate(homeForUser(currentUser) || ROLE_HOME[currentRole] || '/home');
   }
 
   function toast(msg) {
@@ -463,17 +533,30 @@
 
   function applyTeacherPost(postId, opts) {
     opts = opts || {};
-    currentPost = postId in TEACHER_POSTS ? postId : 'class';
-    const post = TEACHER_POSTS[currentPost];
+    if (currentUser && currentUser.role === 'teacher') {
+      currentPost = postForUser(currentUser);
+    } else {
+      currentPost = postId in TEACHER_POSTS ? postId : 'class';
+    }
+    const post = TEACHER_POSTS[currentPost] || TEACHER_POSTS.class;
     document.querySelectorAll('.post-btn').forEach(b => b.classList.toggle('active', b.dataset.post === currentPost));
     document.querySelectorAll('.post-panel').forEach(p => p.classList.toggle('active', p.dataset.post === currentPost));
     const banner = document.getElementById('postBanner');
     if (banner) {
-      banner.innerHTML = `<span class="post-tag">${post.label}</span><span class="small muted">${post.scope} · ${post.navHint}</span><span class="badge badge-frost">職務切換示範</span>`;
+      banner.innerHTML = `<span class="post-tag">${post.label}</span><span class="small muted">${post.scope} · ${post.navHint}</span>`;
     }
+    const subEl = document.getElementById('teacherSub');
+    if (subEl) subEl.textContent = post.label + ' · ' + post.scope;
+    const canAssignUi = currentPost === 'class' || currentPost === 'subject';
+    const canClassUi = currentPost === 'class';
+    document.querySelectorAll('.js-need-assign').forEach(el => el.classList.toggle('hidden', !canAssignUi));
+    document.querySelectorAll('.js-need-class').forEach(el => el.classList.toggle('hidden', !canClassUi));
     const kpiHost = document.getElementById('teacherKpis');
     if (kpiHost && !opts.reportOnly) {
-      kpiHost.innerHTML = post.kpis.map(k => `
+      if (!post.kpis || !post.kpis.length) {
+        kpiHost.innerHTML = '';
+      } else {
+        kpiHost.innerHTML = post.kpis.map(k => `
         <div class="card s3 kpi">
           <div class="t">${k.t}</div>
           <div class="kpi-row">
@@ -482,7 +565,8 @@
           </div>
           <div class="small muted">${k.sub}</div>
         </div>`).join('');
-      hydrateSparks(kpiHost);
+        hydrateSparks(kpiHost);
+      }
     }
     const repH = document.getElementById('reportHeading');
     if (repH) repH.textContent = post.reportTitle;
@@ -1364,19 +1448,17 @@
   /* —— events —— */
   window.addEventListener('hashchange', () => render(parseHash()));
 
-  document.getElementById('roleSwitch').addEventListener('click', e => {
-    const btn = e.target.closest('.role-btn');
-    if (!btn) return;
-    enterRole(btn.dataset.role);
-  });
-
   document.getElementById('navChips').addEventListener('click', e => {
     const c = e.target.closest('.pchip');
     if (!c) return;
+    if (c.dataset.route === '/logout') {
+      if (window.SelfLearnLive && window.SelfLearnLive.logout) return window.SelfLearnLive.logout();
+      return;
+    }
     navigate(c.dataset.route);
   });
 
-  document.querySelector('.brand').addEventListener('click', () => navigate(ROLE_HOME[currentRole]));
+  document.querySelector('.brand').addEventListener('click', () => navigate(homeForUser(currentUser) || ROLE_HOME[currentRole]));
 
   document.body.addEventListener('click', e => {
     const scrollBtn = e.target.closest('[data-scroll]');
@@ -1390,10 +1472,6 @@
     if (go) {
       e.preventDefault();
       const r = go.dataset.go;
-      if (r === 'oauth-demo') return toast('示範環境請用帳號／密碼登入');
-      if (r === 'role-student') return window.SelfLearnLive?.demoLogin ? window.SelfLearnLive.demoLogin('student') : enterRole('student');
-      if (r === 'role-teacher') return window.SelfLearnLive?.demoLogin ? window.SelfLearnLive.demoLogin('teacher') : enterRole('teacher');
-      if (r === 'role-admin') return window.SelfLearnLive?.demoLogin ? window.SelfLearnLive.demoLogin('admin') : enterRole('admin');
       navigate(r);
       return;
     }
@@ -1431,19 +1509,6 @@
   wireChips('#heatRange', c => {
     buildRoomHeat(c.dataset.range);
     buildContribGraph('usageContrib', { weeks: 26, seed: c.dataset.range === 'term' ? 9 : c.dataset.range === 'month' ? 5 : 7, title: '全校活躍（GitHub 式）' });
-  });
-  // teacher post switch (any .post-switch)
-  document.body.addEventListener('click', e => {
-    const btn = e.target.closest('.post-switch .post-btn');
-    if (!btn) return;
-    applyTeacherPost(btn.dataset.post);
-    document.querySelectorAll('.post-switch .post-btn').forEach(b => b.classList.toggle('active', b.dataset.post === currentPost));
-    if (pageIdFromRoute(currentRoute) === 'assign' || currentRoute === '/assign') renderAssignScope(currentPost);
-    if (pageIdFromRoute(currentRoute) === 'report' || currentRoute === '/report') {
-      renderReport(document.querySelector('#repRange .chip.on')?.dataset.range || 'week');
-      buildContribGraph('classHeat', { weeks: 12, seed: currentPost === 'grade' ? 33 : currentPost === 'subject' ? 44 : 22, title: '近 12 週完成量' });
-    }
-    toast('已切換職務：' + TEACHER_POSTS[currentPost].label);
   });
 
   // quiz create vs pick
@@ -1868,6 +1933,9 @@
     toast,
     getRole: () => currentRole,
     setRole: (r) => { currentRole = r; },
+    getUser: () => currentUser,
+    setSession,
+    renderNav,
     getPost: () => currentPost,
     applyTeacherPost,
     renderReport,

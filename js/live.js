@@ -1,10 +1,5 @@
 /* Live API wiring — same UI, real Neon session */
 (function () {
-  const DEMO = {
-    student: { username: 's24012', password: 'Demo123!' },
-    teacher: { username: 't.wang', password: 'Demo123!' },
-    admin: { username: 'admin', password: 'Demo123!' }
-  };
   const P = () => window.SelfLearnProto;
   let me = null;
   let subjects = [];
@@ -34,17 +29,18 @@
 
   function applySession(user) {
     me = user;
-    if (!user || !P()) return;
-    P().setRole(user.role);
+    if (!P()) return;
+    if (P().setSession) P().setSession(user);
+    if (!user) return;
     const av = document.getElementById('avatarLbl');
     if (av) av.textContent = user.role === 'student' ? '學' : user.role === 'teacher' ? '師' : '管';
     const hello = document.getElementById('homeHello');
     if (hello) {
       const n = user.display_name || user.username;
-      hello.textContent = user.role === 'student' ? '你好，' + n : '你好，' + n;
+      hello.textContent = '你好，' + n;
     }
-    if (user.role === 'teacher' && user.teacher_subrole === 'subject_head') P().applyTeacherPost('subject');
-    else if (user.role === 'teacher' && user.teacher_subrole === 'class_teacher') P().applyTeacherPost('class');
+    if (P().applyTeacherPost) P().applyTeacherPost();
+    if (P().renderNav) P().renderNav();
   }
 
   async function login(username, password) {
@@ -63,20 +59,98 @@
     }
   }
 
-  async function demoLogin(role) {
-    const acc = DEMO[role] || DEMO.student;
-    return login(acc.username, acc.password);
+  async function logout() {
+    if (!confirm('登出？')) return;
+    try { await api('auth/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
+    me = null;
+    if (P() && P().setSession) P().setSession(null);
+    location.hash = '#/login';
+    toast('已登出');
   }
 
   async function restore() {
     try {
       const data = await api('auth/me');
       applySession(data.user);
-      if ((location.hash || '#/login') === '#/login' || location.hash === '#' || !location.hash) {
-        P().enterRole(data.user.role);
-      }
+      const route = (location.hash || '#/login').replace(/^#/, '') || '/login';
+      if (route === '/login' || route === '/') P().enterRole(data.user.role);
+      else P().navigate(route);
     } catch (e) {
       me = null;
+      if (P() && P().setSession) P().setSession(null);
+      if ((location.hash || '#/login') !== '#/login' && location.hash !== '#') {
+        location.hash = '#/login';
+      }
+    }
+  }
+
+  async function loadSsoLogin() {
+    const box = document.getElementById('ssoLogin');
+    const ed = document.getElementById('btnSsoEdcity');
+    const g = document.getElementById('btnSsoGoogle');
+    try {
+      const data = await api('auth/sso-config');
+      const ids = (data.providers || []).filter((p) => p && p.enabled).map((p) => p.id);
+      if (ed) ed.hidden = ids.indexOf('edcity') < 0;
+      if (g) g.hidden = ids.indexOf('google') < 0;
+      if (box) box.hidden = !ids.length;
+    } catch (e) {
+      if (ed) ed.hidden = true;
+      if (g) g.hidden = true;
+      if (box) box.hidden = true;
+    }
+  }
+
+  function ssoIncomplete(p) {
+    const creds = (p && p.credentials) || {};
+    if (p.id === 'edcity') return !(creds.app_code && creds.app_code.set && creds.app_secret && creds.app_secret.set);
+    if (p.id === 'google') return !(creds.client_id && creds.client_id.set && creds.client_secret && creds.client_secret.set);
+    return true;
+  }
+
+  function startSso() {
+    toast('設定未完整');
+  }
+
+  function credSet(creds, key) {
+    return !!(creds && creds[key] && creds[key].set);
+  }
+
+  function fillSsoCard(p) {
+    if (!p || !p.id) return;
+    const card = document.querySelector('[data-sso-card="' + p.id + '"]');
+    if (!card) return;
+    const en = card.querySelector('[data-sso-enabled]');
+    const fields = card.querySelector('[data-sso-fields]');
+    if (en) en.checked = !!p.enabled;
+    if (fields) fields.hidden = !p.enabled;
+    const creds = p.credentials || {};
+    const origin = (typeof location !== 'undefined' && location.origin) ? location.origin : '';
+    card.querySelectorAll('[data-sso-field]').forEach((input) => {
+      const k = input.dataset.ssoField;
+      if (k === 'redirect_uri') {
+        input.value = origin + '/api/auth/sso/callback/' + p.id;
+        return;
+      }
+      if (input.type === 'password' || input.tagName === 'INPUT') {
+        input.value = '';
+        input.placeholder = credSet(creds, k) ? '已設定（留空以保留）' : (input.type === 'password' ? '尚未設定' : '');
+      }
+    });
+    const hint = card.querySelector('[data-sso-secret-hint]');
+    if (hint) {
+      hint.textContent = ssoIncomplete(p)
+        ? '設定未完整 — 啟用後仍須填寫識別碼與密鑰。密鑰只存資料庫，列表 API 只回 {set}。'
+        : '密鑰已儲存（列表只回 {set:true}，不會回傳原文）。OAuth 回呼為後續項目。';
+    }
+  }
+
+  async function hydrateSso() {
+    try {
+      const data = await api('admin/sso-providers');
+      (data.providers || []).forEach(fillSsoCard);
+    } catch (e) {
+      toast(e.message || '無法載入 SSO 設定');
     }
   }
 
@@ -428,12 +502,16 @@
   }
 
   async function onRender(pageId) {
-    if (pageId === 'login') return;
+    if (pageId === 'login') {
+      loadSsoLogin();
+      return;
+    }
     if (!me) {
       try {
         const data = await api('auth/me');
         applySession(data.user);
       } catch (e) {
+        location.hash = '#/login';
         return;
       }
     }
@@ -450,6 +528,7 @@
     if (pageId === 'admin-users') hydrateUsers();
     if (pageId === 'admin-classes') hydrateClasses();
     if (pageId === 'admin-subjects') hydrateSubjects();
+    if (pageId === 'admin-sso') hydrateSso();
     if (pageId === 'editor') hydrateSubjects();
   }
 
@@ -458,19 +537,58 @@
     login(document.getElementById('loginUser').value, document.getElementById('loginPass').value);
   });
 
-  document.getElementById('btnAddUser')?.addEventListener('click', () => addUser());
-
-  document.getElementById('avatarLbl')?.addEventListener('click', async () => {
-    if (!me) return;
-    if (!confirm('登出？')) return;
-    try { await api('auth/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
-    me = null;
-    location.hash = '#/login';
-    toast('已登出');
+  document.getElementById('ssoLogin')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-sso]');
+    if (!btn) return;
+    startSso(btn.dataset.sso);
   });
 
+  document.getElementById('pg-admin-sso')?.addEventListener('change', async (e) => {
+    const tog = e.target.closest('[data-sso-enabled]');
+    if (!tog) return;
+    const provider = tog.dataset.ssoEnabled;
+    const fields = document.querySelector('[data-sso-fields="' + provider + '"]');
+    if (fields) fields.hidden = !tog.checked;
+    try {
+      const data = await api('admin/sso-providers/' + provider, { method: 'PATCH', body: { enabled: tog.checked } });
+      if (data.provider) fillSsoCard(data.provider);
+      toast(tog.checked ? '已啟用' : '已關閉');
+    } catch (err) {
+      tog.checked = !tog.checked;
+      if (fields) fields.hidden = !tog.checked;
+      toast(err.message || '更新失敗');
+    }
+  });
+
+  document.getElementById('pg-admin-sso')?.addEventListener('click', async (e) => {
+    const save = e.target.closest('[data-sso-save]');
+    if (!save) return;
+    const provider = save.dataset.ssoSave;
+    const card = document.querySelector('[data-sso-card="' + provider + '"]');
+    if (!card) return;
+    const body = { enabled: !!card.querySelector('[data-sso-enabled]')?.checked };
+    const credentials = {};
+    card.querySelectorAll('[data-sso-field]').forEach((input) => {
+      if (input.readOnly) return;
+      const v = (input.value || '').trim();
+      if (v) credentials[input.dataset.ssoField] = v;
+    });
+    if (Object.keys(credentials).length) body.credentials = credentials;
+    try {
+      const data = await api('admin/sso-providers/' + provider, { method: 'PATCH', body });
+      toast('已儲存');
+      if (data.provider) fillSsoCard(data.provider);
+      card.querySelectorAll('input[type=password]').forEach((i) => { i.value = ''; });
+    } catch (err) {
+      toast(err.message || '儲存失敗');
+    }
+  });
+
+  document.getElementById('btnAddUser')?.addEventListener('click', () => addUser());
+
+  document.getElementById('avatarLbl')?.addEventListener('click', () => logout());
+
   window.SelfLearnLive = {
-    demoLogin,
     onRender,
     submitQuiz,
     markDone,
@@ -480,7 +598,8 @@
     addClass,
     addSubject,
     renameSubject,
-    toggleSubject
+    toggleSubject,
+    logout
   };
 
   restore();
