@@ -40,11 +40,25 @@ function readBody(req) {
   });
 }
 
+function splitSegs(value) {
+  return (Array.isArray(value) ? value : [value])
+    .flatMap((s) => String(s).split('/'))
+    .map((s) => {
+      try {
+        return decodeURIComponent(s);
+      } catch (e) {
+        return s;
+      }
+    })
+    .filter((s) => s && s !== '[...path]');
+}
+
 function pathParts(req) {
-  const url = new URL(req.url, 'http://localhost');
-  let parts = url.pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean);
-  if (Array.isArray(req.query && req.query.path)) parts = req.query.path;
-  else if (typeof (req.query && req.query.path) === 'string') parts = [req.query.path];
+  const url = new URL(req.url || '/', 'http://localhost');
+  const fromUrl = splitSegs(url.pathname.replace(/^\/api\/?/, ''));
+  const q = req.query && req.query.path;
+  const fromQuery = q == null || q === '' ? [] : splitSegs(q);
+  const parts = fromUrl.length ? fromUrl : fromQuery;
   return { parts, search: url.searchParams };
 }
 

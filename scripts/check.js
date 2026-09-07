@@ -1,5 +1,6 @@
 const { gradeQuiz, answersMatch } = require('../api/_lib/grade');
 const { canWriteResource, canManageSchool, canAssign, canViewResource } = require('../api/_lib/access');
+const { pathParts } = require('../api/_lib/http');
 
 let failed = 0;
 function assert(cond, msg) {
@@ -43,6 +44,21 @@ assert(g.score === 100 && g.correct === 3, 'perfect MC/TF/fill grades 100');
 const g2 = gradeQuiz(qs, { 1: 'a', 2: 't', 3: 'rain' });
 assert(g2.score === 0, 'all wrong grades 0');
 assert(answersMatch('drizzle|rain', 'Rain', 'fill'), 'fill accepts alt answers');
+
+function routeKey(req) {
+  return pathParts(req).parts.join('/');
+}
+assert(routeKey({ url: '/api/health' }) === 'health', 'url /api/health');
+assert(routeKey({ url: '/api/auth/login' }) === 'auth/login', 'url nested login');
+assert(routeKey({ url: '/api/auth/me' }) === 'auth/me', 'url nested me');
+assert(routeKey({ url: '/api/resources?subject=eng' }) === 'resources', 'url resources keeps path');
+assert(pathParts({ url: '/api/resources?subject=eng' }).search.get('subject') === 'eng', 'url search subject');
+assert(routeKey({ url: '/api/[...path]', query: { path: 'auth/login' } }) === 'auth/login', 'rewrite string path splits');
+assert(routeKey({ url: '/api/[...path]', query: { path: ['auth', 'login'] } }) === 'auth/login', 'rewrite array path');
+assert(routeKey({ url: '/api/health', query: { path: 'health' } }) === 'health', 'single-segment query.path string');
+assert(routeKey({ url: '/api/auth/login', query: { path: 'auth/login' } }) === 'auth/login', 'url wins over joined query string');
+assert(routeKey({ url: '/api/progress' }) === 'progress', 'url progress');
+assert(routeKey({ url: '/api/subjects/2' }) === 'subjects/2', 'url subjects id');
 
 if (failed) {
   console.error('\n' + failed + ' failed');
