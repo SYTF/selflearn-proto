@@ -9,22 +9,55 @@
     if (P() && P().toast) P().toast(msg);
   }
 
+  let inflight = 0;
+
+  function beginBusy() {
+    if (P() && P().beginBusy) P().beginBusy();
+  }
+  function endBusy() {
+    if (P() && P().endBusy) P().endBusy();
+  }
+
+  async function withButton(btn, fn) {
+    if (!btn) return fn();
+    const html = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add('is-loading');
+    if (!btn.querySelector('.spin')) {
+      btn.insertAdjacentHTML('afterbegin', '<span class="spin" aria-hidden="true"></span>');
+    }
+    try {
+      return await fn();
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('is-loading');
+      btn.innerHTML = html;
+    }
+  }
+
   async function api(path, opts) {
     opts = opts || {};
-    const res = await fetch('/api/' + path.replace(/^\//, ''), {
-      method: opts.method || 'GET',
-      credentials: 'include',
-      headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
-      body: opts.body ? JSON.stringify(opts.body) : undefined
-    });
-    let data = {};
-    try { data = await res.json(); } catch (e) { data = {}; }
-    if (!res.ok) {
-      const err = new Error(data.error || ('HTTP ' + res.status));
-      err.status = res.status;
-      throw err;
+    inflight += 1;
+    beginBusy();
+    try {
+      const res = await fetch('/api/' + path.replace(/^\//, ''), {
+        method: opts.method || 'GET',
+        credentials: 'include',
+        headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
+        body: opts.body ? JSON.stringify(opts.body) : undefined
+      });
+      let data = {};
+      try { data = await res.json(); } catch (e) { data = {}; }
+      if (!res.ok) {
+        const err = new Error(data.error || ('HTTP ' + res.status));
+        err.status = res.status;
+        throw err;
+      }
+      return data;
+    } finally {
+      inflight = Math.max(0, inflight - 1);
+      endBusy();
     }
-    return data;
   }
 
   function applySession(user) {
@@ -39,24 +72,29 @@
       const n = user.display_name || user.username;
       hello.textContent = '你好，' + n;
     }
-    if (P().applyTeacherPost) P().applyTeacherPost();
+    if (P() && P().applyTeacherPost) P().applyTeacherPost();
     if (P().renderNav) P().renderNav();
+    if (P().applyWriteGates) P().applyWriteGates();
   }
 
   async function login(username, password) {
     const errEl = document.getElementById('loginErr');
+    const btn = document.getElementById('loginSubmit');
     if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
-    try {
-      const data = await api('auth/login', { method: 'POST', body: { username, password } });
-      applySession(data.user);
-      P().enterRole(data.user.role);
-    } catch (e) {
-      if (errEl) {
-        errEl.hidden = false;
-        errEl.textContent = e.message || '登入失敗';
+    await withButton(btn, async () => {
+      try {
+        const data = await api('auth/login', { method: 'POST', body: { username, password } });
+        applySession(data.user);
+        if (P().applyWriteGates) P().applyWriteGates();
+        P().enterRole(data.user.role);
+      } catch (e) {
+        if (errEl) {
+          errEl.hidden = false;
+          errEl.textContent = e.message || '登入失敗';
+        }
+        toast(e.message || '登入失敗');
       }
-      toast(e.message || '登入失敗');
-    }
+    });
   }
 
   async function logout() {
@@ -195,7 +233,9 @@
     const sel = document.getElementById('edSubject');
     const cat = document.getElementById('edCategory');
     const vis = document.getElementById('edVisibility');
-    const subject = subjects.find((s) => sel && sel.value && sel.value.indexOf(s.name) !== -1) || subjects.find((s) => s.slug === 'eng');
+    const subject = subjects.find((s) => sel && String(sel.value) === String(s.id))
+      || subjects.find((s) => sel && sel.value && String(sel.value).indexOf(s.name) !== -1)
+      || subjects.find((s) => s.slug === 'eng');
     const catVal = cat ? cat.value : '閱讀 Reading';
     let category = 'reading';
     if (/生字|Vocab/i.test(catVal)) category = 'vocab';
@@ -214,14 +254,17 @@
     };
     try {
       let data;
-      if (editingId) {
-        data = await api('resources/' + editingId, { method: 'PATCH', body: body });
-      } else {
-        body.slug = 'ed-' + Date.now();
-        data = await api('resources', { method: 'POST', body: body });
-        editingId = data.resource && data.resource.id;
-      }
-      toast(status === 'published' ? '已發佈上架' : '已儲存草稿');
+      const btn = document.getElementById(status === 'published' ? 'btnPublish' : 'btnSaveDraft');
+      await withButton(btn, async () => {
+        if (editingId) {
+          data = await api('resources/' + editingId, { method: 'PATCH', body: body });
+        } else {
+          body.slug = 'ed-' + Date.now();
+          data = await api('resources', { method: 'POST', body: body });
+          editingId = data.resource && data.resource.id;
+        }
+        toast(status === 'published' ? '已發佈上架' : '已儲存草稿');
+      });
     } catch (e) {
       toast(e.message || '儲存失敗');
     }
@@ -230,6 +273,8 @@
   async function assign() {
     const selected = P() && P().getAssignSelected ? P().getAssignSelected() : new Map();
     if (!selected.size) return toast('請先選擇指派對象');
+    const btn = document.getElementById('btnAssignConfirm');
+    await withButton(btn, async () => {
     try {
       const res = await api('resources');
       const classRows = await api('classes');
@@ -266,6 +311,7 @@
     } catch (e) {
       toast(e.message || '指派失敗');
     }
+    });
   }
 
   function subroleLabel(u) {
@@ -293,26 +339,86 @@
       const hidden = row === tab ? '' : ' class="hidden"';
       return `<tr data-utab-row="${row}" data-user-id="${u.id}"${hidden}>
         <td>${u.display_name}</td><td>${u.username}</td><td>${subroleLabel(u)}</td>
-        <td>${scopeLabel(u)}</td><td>${st}</td></tr>`;
+        <td>${scopeLabel(u)}</td><td>${st}</td>
+        <td><button type="button" class="btn btn-ghost btn-sm" data-reset-user="${u.id}">重設密碼</button></td></tr>`;
     }).join('');
   }
 
-  async function addUser() {
-    const display_name = prompt('姓名', '新同學');
-    if (!display_name) return;
-    const username = prompt('帳號', 's' + Date.now().toString().slice(-5));
-    if (!username) return;
-    const role = prompt('角色 admin / teacher / student', 'student');
-    try {
-      await api('users', {
-        method: 'POST',
-        body: { display_name, username, role: role || 'student', password: 'Demo123!' }
-      });
-      toast('已新增用戶：' + display_name);
-      await hydrateUsers();
-    } catch (e) {
-      toast(e.message || '新增失敗');
+  let userModalMode = 'create';
+  let resetUserId = null;
+
+  function openUserModal(mode, userId) {
+    userModalMode = mode;
+    resetUserId = userId || null;
+    const modal = document.getElementById('userModal');
+    const bg = document.getElementById('userModalBg');
+    const create = document.getElementById('userModalCreate');
+    const title = document.getElementById('userModalTitle');
+    const passLbl = document.getElementById('umPassLbl');
+    const pass = document.getElementById('umPass');
+    if (!modal) return;
+    if (title) title.textContent = mode === 'reset' ? '重設密碼' : '新增用戶';
+    if (create) create.hidden = mode === 'reset';
+    if (passLbl) passLbl.textContent = mode === 'reset' ? '新密碼' : '密碼';
+    if (pass) {
+      pass.value = mode === 'create' ? 'Demo123!' : '';
+      pass.type = 'password';
     }
+    if (mode === 'create') {
+      const n = document.getElementById('umName');
+      const u = document.getElementById('umUser');
+      const r = document.getElementById('umRole');
+      if (n) n.value = '';
+      if (u) u.value = '';
+      if (r) r.value = 'student';
+    }
+    modal.hidden = false;
+    bg.hidden = false;
+    document.body.classList.add('modal-open');
+    if (P() && P().enhancePasswordFields) P().enhancePasswordFields(modal);
+  }
+
+  function closeUserModal() {
+    document.getElementById('userModal')?.setAttribute('hidden', '');
+    document.getElementById('userModalBg')?.setAttribute('hidden', '');
+    document.body.classList.remove('modal-open');
+    userModalMode = 'create';
+    resetUserId = null;
+  }
+
+  async function submitUserModal() {
+    const btn = document.getElementById('userModalConfirm');
+    await withButton(btn, async () => {
+      try {
+        if (userModalMode === 'reset') {
+          const password = document.getElementById('umPass')?.value || '';
+          if (!password) return toast('請輸入新密碼');
+          if (!resetUserId) return;
+          await api('users/' + resetUserId, { method: 'PATCH', body: { password } });
+          toast('已重設密碼');
+          closeUserModal();
+          return;
+        }
+        const display_name = (document.getElementById('umName')?.value || '').trim();
+        const username = (document.getElementById('umUser')?.value || '').trim();
+        const role = document.getElementById('umRole')?.value || 'student';
+        const password = document.getElementById('umPass')?.value || 'Demo123!';
+        if (!display_name || !username) return toast('請輸入姓名與帳號');
+        await api('users', {
+          method: 'POST',
+          body: { display_name, username, role, password }
+        });
+        toast('已新增用戶：' + display_name);
+        closeUserModal();
+        await hydrateUsers();
+      } catch (e) {
+        toast(e.message || '儲存失敗');
+      }
+    });
+  }
+
+  async function addUser() {
+    openUserModal('create');
   }
 
   async function hydrateClasses() {
@@ -357,6 +463,26 @@
     const ed = document.getElementById('edSubject');
     if (ed && subjects.length) {
       ed.innerHTML = subjects.filter((s) => !s.hidden).map((s) => `<option value="${s.id}">${s.name}</option>`).join('');
+      if (P() && P().applyWriteGates) P().applyWriteGates();
+    }
+    fillSubjectPicker();
+  }
+
+  function fillSubjectPicker() {
+    const pick = document.getElementById('subjPick');
+    if (!pick) return;
+    const slug = P() && P().subjectSlugFromRoute ? P().subjectSlugFromRoute(location.hash.replace(/^#/, '') || '/subject') : '';
+    const chips = ['<button type="button" class="chip' + (!slug ? ' soft-on' : '') + '" data-subj="">全部科目</button>']
+      .concat((subjects || []).filter((s) => !s.hidden).map((s) =>
+        `<button type="button" class="chip${slug === s.slug ? ' soft-on' : ''}" data-subj="${s.slug}">${s.name}</button>`
+      ));
+    pick.innerHTML = chips.join('');
+    if (P() && P().subjectSlugFromRoute) {
+      /* title sync after chips rebuilt */
+      const route = (location.hash || '#/subject').replace(/^#/, '') || '/subject';
+      const title = document.getElementById('subjTitle');
+      const on = pick.querySelector('.soft-on');
+      if (title && on) title.textContent = on.textContent.trim() || '全部科目';
     }
   }
 
@@ -405,13 +531,26 @@
     return r.category || r.type;
   }
 
-  async function hydrateSubjectGrid() {
+  async function hydrateSubjectGrid(route) {
     try {
-      const data = await api('resources?subject=eng');
+      const slug = P() && P().subjectSlugFromRoute
+        ? P().subjectSlugFromRoute(route || (location.hash || '').replace(/^#/, ''))
+        : '';
+      if (!subjects.length) {
+        try {
+          const sub = await api('subjects');
+          subjects = sub.subjects || [];
+          fillSubjectPicker();
+        } catch (e) { /* proto chips remain */ }
+      } else {
+        fillSubjectPicker();
+      }
+      const path = slug ? 'resources?subject=' + encodeURIComponent(slug) : 'resources';
+      const data = await api(path);
       const grid = document.getElementById('matGrid');
       if (!grid) return;
       const list = data.resources || [];
-      if (!list.length) return;
+      if (P() && P().applyWriteGates) P().applyWriteGates();
       grid.innerHTML = list.map((r) => {
         const assigned = r.is_assigned ? '1' : '0';
         const progress = r.in_progress ? '1' : '0';
@@ -419,14 +558,17 @@
         if (r.is_assigned) badges.push('<span class="badge badge-g">已指派</span>');
         if (r.in_progress) badges.push('<span class="badge badge-y">進行中</span>');
         if (r.visibility === 'library') badges.push('<span class="badge badge-frost">圖書館</span>');
+        if (r.status === 'draft') badges.push('<span class="badge badge-y">草稿</span>');
         const cover = r.cover || 'img/subj-eng.png';
         const label = { vocab: '生字', reading: '閱讀', video: '影片', quiz: '獨立小測', article: '閱讀' }[catOf(r)] || '教材';
         const badgeCls = catOf(r) === 'quiz' ? 'badge-y' : catOf(r) === 'reading' || catOf(r) === 'article' ? 'badge-p' : 'badge-frost';
+        const subj = (!slug && r.subject_name) ? `<div class="small muted mt8">${r.subject_name}</div>` : '';
         return `<div class="card mat-card s4" data-cat="${catOf(r)}" data-assigned="${assigned}" data-progress="${progress}" data-go="${r.route}">
           <img class="thumb" src="${cover}" alt="" />
           <div class="card-pad">
             <div class="between"><span class="badge ${badgeCls}">${label}</span><span class="small muted">${r.duration_label || ''}</span></div>
             <div class="h2 mt8">${r.title}</div>
+            ${subj}
             <div class="mat-meta">${badges.join('')}</div>
           </div>
         </div>`;
@@ -501,9 +643,9 @@
     } catch (e) { /* keep proto */ }
   }
 
-  async function onRender(pageId) {
+  async function onRender(pageId, route) {
     if (pageId === 'login') {
-      loadSsoLogin();
+      await loadSsoLogin();
       return;
     }
     if (!me) {
@@ -515,21 +657,21 @@
         return;
       }
     }
-    if (pageId === 'home') hydrateStudentHome();
-    if (pageId === 'subject') hydrateSubjectGrid();
-    if (pageId === 'progress') hydrateProgress();
+    if (pageId === 'home') await hydrateStudentHome();
+    if (pageId === 'subject') await hydrateSubjectGrid(route);
+    if (pageId === 'progress') await hydrateProgress();
     if (pageId === 'teacher' || pageId === 'report') {
       await hydrateTeacher();
       if (pageId === 'report' && P().renderReport) {
         P().renderReport(document.querySelector('#repRange .chip.on')?.dataset.range || 'week');
       }
     }
-    if (pageId === 'admin') hydrateAdmin();
-    if (pageId === 'admin-users') hydrateUsers();
-    if (pageId === 'admin-classes') hydrateClasses();
-    if (pageId === 'admin-subjects') hydrateSubjects();
-    if (pageId === 'admin-sso') hydrateSso();
-    if (pageId === 'editor') hydrateSubjects();
+    if (pageId === 'admin') await hydrateAdmin();
+    if (pageId === 'admin-users') await hydrateUsers();
+    if (pageId === 'admin-classes') await hydrateClasses();
+    if (pageId === 'admin-subjects') await hydrateSubjects();
+    if (pageId === 'admin-sso') await hydrateSso();
+    if (pageId === 'editor') await hydrateSubjects();
   }
 
   document.getElementById('loginForm')?.addEventListener('submit', (e) => {
@@ -574,17 +716,33 @@
       if (v) credentials[input.dataset.ssoField] = v;
     });
     if (Object.keys(credentials).length) body.credentials = credentials;
-    try {
-      const data = await api('admin/sso-providers/' + provider, { method: 'PATCH', body });
-      toast('已儲存');
-      if (data.provider) fillSsoCard(data.provider);
-      card.querySelectorAll('input[type=password]').forEach((i) => { i.value = ''; });
-    } catch (err) {
-      toast(err.message || '儲存失敗');
-    }
+    await withButton(save, async () => {
+      try {
+        const data = await api('admin/sso-providers/' + provider, { method: 'PATCH', body });
+        toast('已儲存');
+        if (data.provider) fillSsoCard(data.provider);
+        card.querySelectorAll('input[type=password]').forEach((i) => { i.value = ''; i.type = 'password'; });
+      } catch (err) {
+        toast(err.message || '儲存失敗');
+      }
+    });
   });
 
   document.getElementById('btnAddUser')?.addEventListener('click', () => addUser());
+  document.getElementById('userModalClose')?.addEventListener('click', closeUserModal);
+  document.getElementById('userModalCancel')?.addEventListener('click', closeUserModal);
+  document.getElementById('userModalBg')?.addEventListener('click', closeUserModal);
+  document.getElementById('userModalConfirm')?.addEventListener('click', () => submitUserModal());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('userModal') && !document.getElementById('userModal').hidden) {
+      closeUserModal();
+    }
+  });
+  document.getElementById('userBody')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-reset-user]');
+    if (!btn) return;
+    openUserModal('reset', btn.dataset.resetUser);
+  });
 
   document.getElementById('avatarLbl')?.addEventListener('click', () => logout());
 

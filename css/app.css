@@ -16,9 +16,13 @@ img{display:block;max-width:100%;object-fit:cover}
 kbd{background:var(--snow1);padding:1px 5px;border-radius:4px;font-size:12px}
 
 .app-chrome{position:sticky;top:0;z-index:50;background:rgba(236,239,244,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--snow2)}
-.chrome-inner{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.chrome-inner{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
 .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;color:var(--ink0);cursor:pointer}
 .brand-mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--frost0),var(--frost1));display:grid;place-items:center;color:#fff;font-size:12px}
+.chrome-spacer{flex:1}
+.nav-burger{width:36px;height:36px;border:0;background:transparent;border-radius:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;cursor:pointer;flex-shrink:0}
+.nav-burger:hover{background:var(--snow1)}
+.nav-burger span{display:block;width:16px;height:2px;background:var(--ink1);border-radius:1px}
 .role-switch{display:flex;gap:4px;background:var(--snow1);padding:3px;border-radius:10px}
 .role-btn{border:0;background:transparent;padding:6px 12px;border-radius:8px;cursor:pointer;color:var(--ink3);font-weight:600;font-size:12px}
 .role-btn.active{background:#fff;color:var(--frost0);box-shadow:var(--shadow)}
@@ -26,7 +30,7 @@ kbd{background:var(--snow1);padding:1px 5px;border-radius:4px;font-size:12px}
 .pchip{border:1px solid var(--snow2);background:#fff;padding:5px 10px;border-radius:999px;cursor:pointer;font-size:12px;color:var(--ink2);font-weight:500}
 .pchip:hover{border-color:var(--frost2);color:var(--frost0)}
 .pchip.active{background:var(--frost0);border-color:var(--frost0);color:#fff}
-.avatar{width:32px;height:32px;border-radius:50%;background:var(--frost2);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--frost2);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0;cursor:pointer}
 
 .shell{max-width:1200px;margin:0 auto;padding:14px 16px}
 .page{display:none;animation:fade .22s ease}
@@ -53,6 +57,7 @@ kbd{background:var(--snow1);padding:1px 5px;border-radius:4px;font-size:12px}
 .chip.soft-on{background:rgba(94,129,172,.12);border-color:var(--frost2);color:var(--frost0)}
 
 .btn{border:0;border-radius:10px;padding:8px 13px;font-weight:700;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
 .btn-primary{background:var(--frost0);color:#fff}.btn-primary:hover{background:#4c6f98}
 .btn-ghost{background:var(--snow1);color:var(--ink1)}.btn-ghost:hover{background:var(--snow2)}
 .btn-outline{background:#fff;border:1px solid var(--snow2);color:var(--ink1)}
@@ -327,3 +332,27 @@ body.modal-open{overflow:hidden}
 .sso-switch{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer}
 .sso-switch input{accent-color:var(--frost0)}
 .sso-fields .field input[readonly]{background:var(--snow1);color:var(--ink3)}
+
+/* —— Left nav drawer (role chips) —— */
+.nav-backdrop{position:fixed;inset:0;background:rgba(46,52,64,.35);z-index:70;display:none}
+.nav-backdrop.open{display:block}
+.nav-drawer{position:fixed;top:0;left:0;width:min(280px,86vw);height:100%;background:#fff;box-shadow:8px 0 32px rgba(0,0,0,.12);z-index:80;padding:16px;transform:translateX(-100%);transition:transform .25s;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.nav-drawer.open{transform:none}
+.nav-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--snow1)}
+.nav-drawer-list{flex-direction:column;flex-wrap:nowrap;flex:none;gap:6px}
+.nav-drawer .pchip{width:100%;border-radius:10px;text-align:left;padding:10px 12px;font-size:13px}
+
+/* —— Nord spinner —— */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:14px;height:14px;border:2px solid var(--snow2);border-top-color:var(--frost0);border-radius:50%;animation:spin .65s linear infinite;display:inline-block;flex-shrink:0}
+.page-spinner{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:120;background:#fff;border:1px solid var(--snow2);border-radius:999px;padding:6px 12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+.page-spinner[hidden]{display:none!important}
+body.is-busy{cursor:progress}
+
+/* —— Password eye —— */
+.pass-field{position:relative;display:block}
+.pass-field input{width:100%;padding:8px 36px 8px 10px;border-radius:8px;border:1px solid var(--snow2);background:var(--snow0)}
+.field .pass-field input{padding:8px 36px 8px 10px}
+.pass-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;background:transparent;border-radius:6px;cursor:pointer;color:var(--ink3);display:grid;place-items:center;padding:0}
+.pass-toggle:hover{background:var(--snow1);color:var(--frost0)}
+.pass-toggle.on{color:var(--frost0)}

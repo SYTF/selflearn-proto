@@ -5,6 +5,15 @@
     return '/subject/' + slug;
   }
 
+  function canWriteResource(user, resource) {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (user.role !== 'teacher') return false;
+    if (user.teacher_subrole !== 'subject_head') return false;
+    if (!resource) return true;
+    return Number(resource.subject_id) === Number(user.subject_id);
+  }
+
   function navItems(user) {
     if (!user) return [];
     const logout = { route: '/logout', label: '登出' };
@@ -22,6 +31,7 @@
     if (user.role === 'teacher' && user.teacher_subrole === 'subject_head') {
       return [
         { route: '/teacher', label: '總覽' },
+        { route: '/subject', label: '科目瀏覽' },
         { route: subjectRoute(user), label: '本科資源' },
         { route: '/editor', label: '編輯上架' },
         { route: '/assign', label: '指派' },
@@ -31,6 +41,7 @@
     if (user.role === 'teacher' && user.teacher_subrole === 'class_teacher') {
       return [
         { route: '/teacher', label: '總覽' },
+        { route: '/subject', label: '科目瀏覽' },
         { route: '/report', label: '本班進度' },
         { route: '/assign', label: '指派' },
         logout
@@ -39,13 +50,13 @@
     if (user.role === 'teacher') {
       return [
         { route: '/teacher', label: '總覽' },
-        { route: subjectRoute(user), label: '科目瀏覽' },
+        { route: '/subject', label: '科目瀏覽' },
         logout
       ];
     }
     return [
       { route: '/home', label: '首頁' },
-      { route: '/subject/eng', label: '科目' },
+      { route: '/subject', label: '科目' },
       { route: '/progress', label: '我的進度' },
       logout
     ];
@@ -132,8 +143,8 @@
     subject_teacher: {
       id: 'subject_teacher',
       label: '一班老師',
-      scope: '科目瀏覽',
-      navHint: '教材唯讀',
+      scope: '全校科目',
+      navHint: '全校教材唯讀',
       kpis: [],
       reportTitle: '科目瀏覽',
       assignDefault: 'class'
@@ -227,6 +238,7 @@
 
   function navigate(route) {
     if (!route.startsWith('/')) route = '/' + route;
+    closeNavDrawer();
     if (location.hash !== '#' + route) {
       location.hash = '#' + route;
     } else {
@@ -302,40 +314,182 @@
       closeInsertModal();
       ensureEditorState();
       renderEditor();
+      applyWriteGates();
     }
     if (pageId === 'admin-usage') {
       buildContribGraph('usageContrib', { weeks: 26, seed: 7, title: '全校活躍（GitHub 式）' });
       buildRoomHeat(document.querySelector('#heatRange .chip.on')?.dataset.range || 'week');
     }
     if (pageId === 'subject') {
+      syncSubjectPage(route);
       applySubjectFilters();
+      applyWriteGates();
     }
     // admin subnav highlight
     document.querySelectorAll('[data-admin-nav]').forEach(a => {
       a.classList.toggle('active', a.getAttribute('data-go') === route || (route === '/heatmap' && a.getAttribute('data-go') === '/admin/usage'));
     });
     window.scrollTo(0, 0);
-    if (window.SelfLearnLive && window.SelfLearnLive.onRender) {
-      window.SelfLearnLive.onRender(pageId, route);
+    const live = window.SelfLearnLive && window.SelfLearnLive.onRender
+      ? window.SelfLearnLive.onRender(pageId, route)
+      : null;
+    if (live && typeof live.then === 'function') {
+      beginBusy();
+      Promise.resolve(live).finally(endBusy);
     }
+  }
+
+  function subjectSlugFromRoute(route) {
+    const m = String(route || '').match(/^\/subject\/([^/]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function syncSubjectPage(route) {
+    const slug = subjectSlugFromRoute(route);
+    const back = document.getElementById('subjBack');
+    if (back) {
+      const dest = currentUser && currentUser.role === 'teacher'
+        ? '/teacher'
+        : currentUser && currentUser.role === 'admin' ? '/admin' : '/home';
+      back.setAttribute('data-go', dest);
+    }
+    const title = document.getElementById('subjTitle');
+    const sub = document.getElementById('subjSub');
+    const pick = document.getElementById('subjPick');
+    if (pick) {
+      pick.querySelectorAll('[data-subj]').forEach((c) => {
+        const on = (c.dataset.subj || '') === (slug || '');
+        c.classList.toggle('soft-on', on);
+        c.classList.toggle('on', on);
+      });
+    }
+    const onChip = pick && pick.querySelector('[data-subj].soft-on');
+    const name = onChip && (onChip.dataset.subj || '') ? onChip.textContent.trim() : '全部科目';
+    if (title) title.textContent = name;
+    if (sub) {
+      sub.textContent = currentUser && currentUser.role === 'student'
+        ? '分類 → 教材卡片 · 預設篩選「已指派」'
+        : '全校教材庫 · 以科目篩選 · 唯讀或依職務編輯';
+    }
+    if (currentUser && currentUser.role !== 'student') {
+      document.querySelectorAll('#subjFilter .chip').forEach((x) => x.classList.remove('on'));
+      document.querySelector('#subjFilter .chip[data-f="all"]')?.classList.add('on');
+    }
+  }
+
+  function applyWriteGates() {
+    const canEditor = !!(currentUser && currentUser.role === 'teacher' && currentUser.teacher_subrole === 'subject_head');
+    const canAdminWrite = !!(currentUser && currentUser.role === 'admin');
+    const canWrite = canEditor || canAdminWrite;
+    document.querySelectorAll('.js-need-write').forEach((el) => {
+      const show = el.id === 'btnLibCreate' ? canEditor : canWrite;
+      el.classList.toggle('hidden', !show);
+    });
+    const sel = document.getElementById('edSubject');
+    if (sel && currentUser && currentUser.role === 'teacher' && currentUser.teacher_subrole === 'subject_head') {
+      if (currentUser.subject_id) sel.value = String(currentUser.subject_id);
+      sel.disabled = true;
+    } else if (sel) {
+      sel.disabled = false;
+    }
+  }
+
+  let busyCount = 0;
+  let busyTimer = null;
+  function beginBusy() {
+    busyCount += 1;
+    if (busyTimer) return;
+    busyTimer = setTimeout(() => {
+      const el = document.getElementById('pageSpinner');
+      if (el) el.hidden = false;
+      document.body.classList.add('is-busy');
+    }, 140);
+  }
+  function endBusy() {
+    busyCount = Math.max(0, busyCount - 1);
+    if (busyCount) return;
+    clearTimeout(busyTimer);
+    busyTimer = null;
+    const el = document.getElementById('pageSpinner');
+    if (el) el.hidden = true;
+    document.body.classList.remove('is-busy');
+  }
+
+  function openNavDrawer() {
+    closeDrawer();
+    document.getElementById('navDrawer')?.classList.add('open');
+    document.getElementById('navBackdrop')?.classList.add('open');
+    const burger = document.getElementById('navBurger');
+    if (burger) burger.setAttribute('aria-expanded', 'true');
+    const drawer = document.getElementById('navDrawer');
+    if (drawer) drawer.setAttribute('aria-hidden', 'false');
+  }
+  function closeNavDrawer() {
+    document.getElementById('navDrawer')?.classList.remove('open');
+    document.getElementById('navBackdrop')?.classList.remove('open');
+    const burger = document.getElementById('navBurger');
+    if (burger) burger.setAttribute('aria-expanded', 'false');
+    const drawer = document.getElementById('navDrawer');
+    if (drawer) drawer.setAttribute('aria-hidden', 'true');
+  }
+
+  const EYE_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.94"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12A3 3 0 0 1 9.88 9.88"/></svg>';
+
+  function syncPassToggle(input) {
+    const btn = input.closest('.pass-field')?.querySelector('.pass-toggle');
+    if (!btn) return;
+    const hidden = input.type === 'password';
+    btn.classList.toggle('on', !hidden);
+    btn.setAttribute('aria-label', hidden ? '顯示密碼' : '隱藏密碼');
+    btn.innerHTML = hidden ? EYE_SVG : EYE_OFF_SVG;
+  }
+
+  function wrapPasswordInput(input) {
+    if (!input || input.closest('.pass-field')) {
+      if (input) syncPassToggle(input);
+      return;
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'pass-field';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pass-toggle';
+    btn.addEventListener('click', () => {
+      input.type = input.type === 'password' ? 'text' : 'password';
+      syncPassToggle(input);
+    });
+    wrap.appendChild(btn);
+    syncPassToggle(input);
+  }
+
+  function enhancePasswordFields(root) {
+    (root || document).querySelectorAll('input[type="password"]').forEach(wrapPasswordInput);
   }
 
   function renderNav() {
     const nav = document.getElementById('navChips');
     if (!nav) return;
-    nav.innerHTML = navItems(currentUser)
+    const items = navItems(currentUser);
+    const ownSubj = items.some((x) => x.route.startsWith('/subject/')) ? subjectRoute(currentUser) : '';
+    nav.innerHTML = items
       .map(i => {
-        const active =
-          currentRoute === i.route ||
-          (i.route === '/admin' && (currentRoute === '/admin' || currentRoute === '/admin/')) ||
-          (i.route.startsWith('/admin/') && currentRoute === i.route) ||
-          (i.route === '/admin/usage' && currentRoute === '/heatmap') ||
-          (i.route.startsWith('/subject') && currentRoute.startsWith('/subject')) ||
-          (i.route.startsWith('/article') && currentRoute.startsWith('/article')) ||
-          (i.route.startsWith('/video') && currentRoute.startsWith('/video')) ||
-          (i.route.startsWith('/resource') && currentRoute.startsWith('/resource')) ||
-          (i.route.startsWith('/quiz') && currentRoute.startsWith('/quiz'));
-        return `<button class="pchip${active ? ' active' : ''}" data-route="${i.route}">${i.label}</button>`;
+        let active = currentRoute === i.route
+          || (i.route === '/admin' && (currentRoute === '/admin' || currentRoute === '/admin/'))
+          || (i.route === '/admin/usage' && currentRoute === '/heatmap')
+          || (i.route.startsWith('/article') && currentRoute.startsWith('/article'))
+          || (i.route.startsWith('/video') && currentRoute.startsWith('/video'))
+          || (i.route.startsWith('/resource') && currentRoute.startsWith('/resource'))
+          || (i.route.startsWith('/quiz') && currentRoute.startsWith('/quiz'));
+        if (i.route === '/subject') {
+          const onLib = currentRoute === '/subject' || currentRoute.startsWith('/subject/');
+          active = onLib && (!ownSubj || currentRoute !== ownSubj || currentRoute === '/subject');
+        } else if (i.route.startsWith('/subject/')) {
+          active = currentRoute === i.route;
+        }
+        return `<button type="button" class="pchip${active ? ' active' : ''}" data-route="${i.route}">${i.label}</button>`;
       })
       .join('');
   }
@@ -876,6 +1030,7 @@
 
   function openDrawer(idx) {
     const s = STUDENTS[idx];
+    closeNavDrawer();
     document.getElementById('drawerName').textContent = s.name;
     document.getElementById('drawerBody').innerHTML = `
     <div class="stack gap12">
@@ -1451,6 +1606,7 @@
   document.getElementById('navChips').addEventListener('click', e => {
     const c = e.target.closest('.pchip');
     if (!c) return;
+    closeNavDrawer();
     if (c.dataset.route === '/logout') {
       if (window.SelfLearnLive && window.SelfLearnLive.logout) return window.SelfLearnLive.logout();
       return;
@@ -1458,7 +1614,19 @@
     navigate(c.dataset.route);
   });
 
-  document.querySelector('.brand').addEventListener('click', () => navigate(homeForUser(currentUser) || ROLE_HOME[currentRole]));
+  document.getElementById('navBurger')?.addEventListener('click', () => {
+    const open = document.getElementById('navDrawer')?.classList.contains('open');
+    if (open) closeNavDrawer();
+    else openNavDrawer();
+  });
+  document.getElementById('navDrawerClose')?.addEventListener('click', closeNavDrawer);
+  document.getElementById('navBackdrop')?.addEventListener('click', closeNavDrawer);
+  document.querySelectorAll('.nav-drawer .brand, .chrome-inner .brand').forEach((el) => {
+    el.addEventListener('click', () => {
+      closeNavDrawer();
+      navigate(homeForUser(currentUser) || ROLE_HOME[currentRole]);
+    });
+  });
 
   document.body.addEventListener('click', e => {
     const scrollBtn = e.target.closest('[data-scroll]');
@@ -1499,6 +1667,12 @@
   wireChips('#catChips', () => {
     forceEmpty = false;
     applySubjectFilters();
+  });
+  document.getElementById('subjPick')?.addEventListener('click', (e) => {
+    const c = e.target.closest('[data-subj]');
+    if (!c) return;
+    const slug = c.dataset.subj || '';
+    navigate(slug ? '/subject/' + slug : '/subject');
   });
   wireChips('#homeFilter');
   wireChips('#resFilter');
@@ -1861,6 +2035,10 @@
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
+      if (document.getElementById('navDrawer')?.classList.contains('open')) {
+        closeNavDrawer();
+        return;
+      }
       if (insertModalState.kind) {
         closeInsertModal();
         return;
@@ -1947,9 +2125,18 @@
     getAssignSelected: () => assignSelected,
     applySubjectFilters,
     buildContribGraph,
+    beginBusy,
+    endBusy,
+    enhancePasswordFields,
+    applyWriteGates,
+    subjectSlugFromRoute,
+    canWriteResource,
     STUDENTS,
     setStudents: (arr) => { STUDENTS.splice(0, STUDENTS.length, ...arr); }
   };
+
+  enhancePasswordFields();
+  applyWriteGates();
 
   // boot
   if (!location.hash || location.hash === '#') {

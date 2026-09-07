@@ -83,6 +83,18 @@ const adminRow = adminSsoProvider({
 assert(adminRow.credentials.client_secret.set === true && !Object.prototype.hasOwnProperty.call(adminRow.credentials.client_secret, 'value'), 'admin GET uses {set}');
 assert(JSON.stringify(adminRow).indexOf('nope') < 0, 'admin GET never echoes secret');
 
+const fs = require('fs');
+const path = require('path');
+const liveSrc = fs.readFileSync(path.join(__dirname, '../js/live.js'), 'utf8');
+const appSrc = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8');
+const htmlSrc = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+assert(!/api\(['"]resources\?subject=eng['"]\)/.test(liveSrc), 'library fetch not hardcoded to eng');
+assert(htmlSrc.indexOf('id="navDrawer"') >= 0 && htmlSrc.indexOf('id="navBurger"') >= 0, 'left nav drawer + hamburger');
+assert(htmlSrc.indexOf('id="subjPick"') >= 0, 'subject picker on library');
+assert(appSrc.indexOf('pass-toggle') >= 0, 'password eye toggle');
+assert(appSrc.indexOf("route: '/subject', label: '科目瀏覽'") >= 0, '一班老師 nav is school-wide 科目瀏覽');
+assert(appSrc.indexOf('js-need-write') >= 0 || htmlSrc.indexOf('js-need-write') >= 0, 'write affordances gated');
+
 if (failed) {
   console.error('\n' + failed + ' failed');
   process.exit(1);
