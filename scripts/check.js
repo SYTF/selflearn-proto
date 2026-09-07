@@ -1,6 +1,7 @@
 const { gradeQuiz, answersMatch } = require('../api/_lib/grade');
 const { canWriteResource, canManageSchool, canAssign, canViewResource } = require('../api/_lib/access');
 const { pathParts } = require('../api/_lib/http');
+const { publicSsoProvider, mergeCredentials } = require('../api/_lib/sso');
 
 let failed = 0;
 function assert(cond, msg) {
@@ -59,6 +60,17 @@ assert(routeKey({ url: '/api/health', query: { path: 'health' } }) === 'health',
 assert(routeKey({ url: '/api/auth/login', query: { path: 'auth/login' } }) === 'auth/login', 'url wins over joined query string');
 assert(routeKey({ url: '/api/progress' }) === 'progress', 'url progress');
 assert(routeKey({ url: '/api/subjects/2' }) === 'subjects/2', 'url subjects id');
+assert(routeKey({ url: '/api/auth/sso-config' }) === 'auth/sso-config', 'url public sso-config');
+assert(routeKey({ url: '/api/admin/sso-providers' }) === 'admin/sso-providers', 'url admin sso list');
+assert(routeKey({ url: '/api/admin/sso-providers/edcity' }) === 'admin/sso-providers/edcity', 'url admin sso patch id');
+assert(routeKey({ url: '/api/[...path]', query: { path: 'admin/sso-providers/google' } }) === 'admin/sso-providers/google', 'rewrite admin sso id');
+
+const leaked = publicSsoProvider({ id: 'google', enabled: true, label: 'Google', credentials: { client_secret: 'nope' } });
+assert(leaked.id === 'google' && leaked.enabled === true && leaked.label === 'Google', 'public sso shape fields');
+assert(!Object.prototype.hasOwnProperty.call(leaked, 'credentials'), 'public sso omits credentials');
+assert(JSON.stringify(mergeCredentials({ app_code: 'a' }, { client_id: 'b' })) === JSON.stringify({ app_code: 'a', client_id: 'b' }), 'credentials shallow merge');
+assert(mergeCredentials({ app_code: 'keep' }, undefined).app_code === 'keep', 'omit credentials keeps current');
+assert(mergeCredentials({ a: 1 }, ['x']) === null, 'credentials array rejected');
 
 if (failed) {
   console.error('\n' + failed + ' failed');

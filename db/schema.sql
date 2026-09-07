@@ -94,6 +94,22 @@ CREATE TABLE IF NOT EXISTS activity (
   UNIQUE (user_id, day)
 );
 
+-- SSO provider flags + secrets for Admin UI. Public API must never SELECT credentials.
+CREATE TABLE IF NOT EXISTS sso_providers (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  credentials JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_by INT NULL REFERENCES users (id)
+);
+
+INSERT INTO sso_providers (id, label, enabled, credentials)
+VALUES
+  ('edcity', 'EdCity', false, '{}'::jsonb),
+  ('google', 'Google', false, '{}'::jsonb)
+ON CONFLICT (id) DO NOTHING;
+
 CREATE INDEX IF NOT EXISTS idx_users_role ON users (role);
 CREATE INDEX IF NOT EXISTS idx_resources_subject ON resources (subject_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_key ON quiz_questions (quiz_key);

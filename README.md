@@ -36,6 +36,18 @@ Password for **all** accounts: `Demo123!`
 
 Login page: type username/password, or use **示範快速進入** (學生 → `s24012`, 老師 → `t.wang`, Admin → `admin`).
 
+## SSO config (Frontend)
+
+Username/password login is unchanged. EdCity / Google buttons stay visual until a provider is enabled.
+
+| Method | Path | Auth | Body / notes |
+| --- | --- | --- | --- |
+| `GET` | `/api/auth/sso-config` | none | `{ providers: [{ id, enabled, label }] }` — **never** credentials |
+| `GET` | `/api/admin/sso-providers` | admin session | list including `credentials` JSON for the Admin UI |
+| `PATCH` | `/api/admin/sso-providers/:id` | admin session | `{ enabled?, label?, credentials? }` — `credentials` is **shallow-merged** into the stored JSON (toggle-only PATCH leaves secrets). Non-admin → 403. |
+
+Seeded keys: `edcity`, `google` (`enabled: false`, `credentials: {}`). Do not commit real secrets.
+
 ## Vercel env keys
 
 Set in Project Settings → Environment Variables (Production + Preview):

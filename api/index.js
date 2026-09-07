@@ -4,6 +4,7 @@ const auth = require('./_lib/auth');
 const access = require('./_lib/access');
 const { gradeQuiz } = require('./_lib/grade');
 const http = require('./_lib/http');
+const sso = require('./_lib/sso');
 
 async function findUser(sql, id) {
   const rows = await sql`
@@ -68,6 +69,52 @@ async function handleMe(req, res, sql) {
   const user = await actor(req, res, sql);
   if (!user) return;
   http.send(res, 200, { user: access.publicUser(user) });
+}
+
+async function handleSsoConfig(req, res, sql) {
+  if (req.method !== 'GET') return http.fail(res, 405, '方法不支援');
+  const rows = await sql`SELECT id, enabled, label FROM sso_providers ORDER BY id`;
+  http.send(res, 200, { providers: rows.map(sso.publicSsoProvider) });
+}
+
+async function handleAdminSsoProviders(req, res, sql, id) {
+  const user = await actor(req, res, sql);
+  if (!user) return;
+  if (!access.canManageSchool(user)) return http.fail(res, 403, '僅 Admin 可管理 SSO');
+  if (req.method === 'GET' && !id) {
+    const rows = await sql`
+      SELECT id, label, enabled, credentials, updated_at, updated_by
+      FROM sso_providers ORDER BY id
+    `;
+    return http.send(res, 200, { providers: rows });
+  }
+  if ((req.method === 'PATCH' || req.method === 'PUT') && id) {
+    const key = String(id);
+    const cur = (await sql`SELECT * FROM sso_providers WHERE id = ${key}`)[0];
+    if (!cur) return http.fail(res, 404, '找不到 SSO 供應商');
+    const body = await http.readBody(req);
+    const label = body.label != null ? String(body.label).trim() : cur.label;
+    if (!label) return http.fail(res, 400, '請輸入顯示名稱');
+    const enabled = body.enabled != null ? !!body.enabled : cur.enabled;
+    let credentials = cur.credentials;
+    if (body.credentials !== undefined) {
+      const merged = sso.mergeCredentials(cur.credentials, body.credentials);
+      if (!merged) return http.fail(res, 400, 'credentials 須為 JSON 物件');
+      credentials = merged;
+    }
+    const rows = await sql`
+      UPDATE sso_providers SET
+        label = ${label},
+        enabled = ${enabled},
+        credentials = ${JSON.stringify(credentials)}::jsonb,
+        updated_at = now(),
+        updated_by = ${user.id}
+      WHERE id = ${key}
+      RETURNING id, label, enabled, credentials, updated_at, updated_by
+    `;
+    return http.send(res, 200, { provider: rows[0] });
+  }
+  http.fail(res, 405, '方法不支援');
 }
 
 async function handleSubjects(req, res, sql, id) {
@@ -563,12 +610,14 @@ module.exports = async function handler(req, res) {
     return http.fail(res, 500, e.message);
   }
   const { parts, search } = http.pathParts(req);
-  const [a, b] = parts;
+  const [a, b, c] = parts;
   try {
     if (!a || a === 'health') return await handleHealth(res, sql);
     if (a === 'auth' && b === 'login' && req.method === 'POST') return await handleLogin(req, res, sql);
     if (a === 'auth' && b === 'logout' && req.method === 'POST') return handleLogout(req, res);
+    if (a === 'auth' && b === 'sso-config') return await handleSsoConfig(req, res, sql);
     if (a === 'auth' && (b === 'me' || !b) && req.method === 'GET') return await handleMe(req, res, sql);
+    if (a === 'admin' && b === 'sso-providers') return await handleAdminSsoProviders(req, res, sql, c);
     if (a === 'subjects') return await handleSubjects(req, res, sql, b);
     if (a === 'users') return await handleUsers(req, res, sql, b);
     if (a === 'classes') return await handleClasses(req, res, sql);
