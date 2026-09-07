@@ -416,10 +416,14 @@
     try {
       const dash = await api('dashboard');
       const k = dash.kpis || {};
-      const ns = document.querySelectorAll('#pg-admin .card.kpi .n');
-      if (ns[0] && k.students != null) ns[0].textContent = String(k.students);
-      if (ns[1] && k.teachers != null) ns[1].textContent = String(k.teachers);
-      if (ns[3] && k.avg != null) ns[3].textContent = String(k.avg);
+      const elS = document.getElementById('adminKpiStudents');
+      const elT = document.getElementById('adminKpiTeachers');
+      const elC = document.getElementById('adminKpiCompletion');
+      const elA = document.getElementById('adminKpiAvg');
+      if (elS && k.students != null) elS.textContent = String(k.students);
+      if (elT && k.teachers != null) elT.textContent = String(k.teachers);
+      if (elC && k.completion != null) elC.textContent = k.completion + '%';
+      if (elA && k.avg != null) elA.textContent = String(k.avg);
     } catch (e) { /* keep proto */ }
   }
 

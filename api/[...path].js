@@ -520,19 +520,22 @@ async function handleDashboard(req, res, sql) {
   const teachers = await sql`SELECT COUNT(*)::int AS n FROM users WHERE role = 'teacher'`;
   const pubs = await sql`SELECT COUNT(*)::int AS n FROM resources WHERE status = 'published'`;
   const avg = await sql`SELECT ROUND(AVG(score)) AS a FROM progress WHERE score IS NOT NULL`;
-  const doneN = await sql`SELECT COUNT(*)::int AS n FROM progress WHERE completed_at IS NOT NULL`;
-  const assignedN = await sql`SELECT COUNT(DISTINCT resource_id)::int AS n FROM assignments`;
-  http.send(res, 200, {
-    user: access.publicUser(user),
-    kpis: {
-      students: (ucount.find((r) => r.role === 'student') || {}).n || 0,
-      teachers: (teachers[0] && teachers[0].n) || 0,
-      published: (pubs[0] && pubs[0].n) || 0,
-      avg: (avg[0] && avg[0].a) || 0,
-      completion: assignedN[0] && assignedN[0].n ? Math.round(((doneN[0] && doneN[0].n) || 0) / Math.max(assignedN[0].n, 1) * 20) : 0,
-      active: (active[0] && active[0].n) || 0
-    }
-  });
+    const doneN = await sql`SELECT COUNT(*)::int AS n FROM progress WHERE completed_at IS NOT NULL`;
+    const assignedRows = await sql`SELECT COUNT(*)::int AS n FROM assignments`;
+    const stuN = (ucount.find((r) => r.role === 'student') || {}).n || 0;
+    const assignedCount = (assignedRows[0] && assignedRows[0].n) || 0;
+    const expected = Math.max(stuN * assignedCount, 1);
+    http.send(res, 200, {
+      user: access.publicUser(user),
+      kpis: {
+        students: stuN,
+        teachers: (teachers[0] && teachers[0].n) || 0,
+        published: (pubs[0] && pubs[0].n) || 0,
+        avg: (avg[0] && avg[0].a) || 0,
+        completion: Math.min(100, Math.round((((doneN[0] && doneN[0].n) || 0) / expected) * 100)),
+        active: (active[0] && active[0].n) || 0
+      }
+    });
 }
 
 async function handleHealth(res, sql) {
