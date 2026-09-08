@@ -10,11 +10,26 @@
 
 <header class="app-chrome" id="chrome" style="display:none">
   <div class="chrome-inner">
+    <button type="button" class="nav-burger" id="navBurger" aria-label="開啟選單" aria-controls="navDrawer" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
     <div class="brand"><div class="brand-mark">學</div>自學無窮</div>
-    <nav class="page-chips" id="navChips"></nav>
+    <div class="chrome-spacer"></div>
     <div class="avatar" id="avatarLbl">學</div>
   </div>
 </header>
+<div class="nav-backdrop" id="navBackdrop"></div>
+<aside class="nav-drawer" id="navDrawer" aria-hidden="true">
+  <div class="nav-drawer-head">
+    <div class="brand"><div class="brand-mark">學</div>自學無窮</div>
+    <button type="button" class="btn btn-ghost btn-sm" id="navDrawerClose" aria-label="關閉選單">✕</button>
+  </div>
+  <nav class="page-chips nav-drawer-list" id="navChips"></nav>
+</aside>
+<div class="page-spinner" id="pageSpinner" hidden>
+  <span class="spin" aria-hidden="true"></span>
+  <span class="small muted">載入中</span>
+</div>
 
 <main class="shell">
 
@@ -37,7 +52,7 @@
         <form id="loginForm" class="stack gap8 mb12">
           <div class="field" style="margin:0"><label>帳號</label><input id="loginUser" name="username" autocomplete="username" /></div>
           <div class="field" style="margin:0"><label>密碼</label><input id="loginPass" name="password" type="password" autocomplete="current-password" /></div>
-          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">登入</button>
+          <button type="submit" class="btn btn-primary" id="loginSubmit" style="width:100%;justify-content:center">登入</button>
           <div class="small" id="loginErr" hidden style="color:var(--aurora-r)"></div>
         </form>
         <div class="stack gap8" id="ssoLogin" hidden>
@@ -169,15 +184,25 @@
   </div>
 </section>
 
-<!-- ========== SUBJECT (English) ========== -->
+<!-- ========== SUBJECT / LIBRARY ========== -->
 <section class="page" id="pg-subject">
   <div class="between mb12">
     <div>
-      <button type="button" class="btn btn-ghost btn-sm mb8" data-go="/home">← 科目</button>
-      <div class="h1">English</div>
-      <div class="sec-sub">分類 → 教材卡片 · 預設篩選「已指派」</div>
+      <button type="button" class="btn btn-ghost btn-sm mb8" id="subjBack" data-go="/home">← 返回</button>
+      <div class="h1" id="subjTitle">全部科目</div>
+      <div class="sec-sub" id="subjSub">分類 → 教材卡片 · 以科目篩選全校教材</div>
     </div>
-    <img src="img/mascot.png" alt="" style="width:64px;height:64px;border-radius:14px;object-fit:cover" />
+    <div class="row gap8" style="align-items:center">
+      <button type="button" class="btn btn-primary btn-sm hidden js-need-write" id="btnLibCreate" data-go="/editor">＋ 新增教材</button>
+      <img src="img/mascot.png" alt="" style="width:64px;height:64px;border-radius:14px;object-fit:cover" />
+    </div>
+  </div>
+  <div class="chips mb8" id="subjPick">
+    <button type="button" class="chip soft-on" data-subj="">全部科目</button>
+    <button type="button" class="chip" data-subj="chi">中文</button>
+    <button type="button" class="chip" data-subj="eng">English</button>
+    <button type="button" class="chip" data-subj="math">數學</button>
+    <button type="button" class="chip" data-subj="gs">常識</button>
   </div>
   <div class="chips mb8" id="subjFilter">
     <button type="button" class="chip on" data-f="assigned">已指派</button>
@@ -205,7 +230,7 @@
   </div>
 
   <div class="bento" id="matGrid">
-    <div class="card mat-card s4" data-cat="vocab" data-assigned="1" data-progress="1" data-go="/resource/vocab">
+    <div class="card mat-card s4" data-cat="vocab" data-subj="eng" data-assigned="1" data-progress="1" data-go="/resource/vocab">
       <img class="thumb" src="img/vocab.png" alt="" />
       <div class="card-pad">
         <div class="between"><span class="badge badge-frost">生字</span><span class="small muted">12 詞</span></div>
@@ -213,7 +238,7 @@
         <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-y">進行中 62%</span><span class="badge badge-y">含本課小測</span></div>
       </div>
     </div>
-    <div class="card mat-card s4" data-cat="reading" data-assigned="1" data-progress="0" data-go="/article/1">
+    <div class="card mat-card s4" data-cat="reading" data-subj="eng" data-assigned="1" data-progress="0" data-go="/article/1">
       <img class="thumb" src="img/subj-eng.png" alt="" />
       <div class="card-pad">
         <div class="between"><span class="badge badge-p">閱讀</span><span class="small muted">約 8 分</span></div>
@@ -221,7 +246,7 @@
         <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-y">含本課小測</span></div>
       </div>
     </div>
-    <div class="card mat-card s4" data-cat="video" data-assigned="1" data-progress="1" data-go="/video/1">
+    <div class="card mat-card s4" data-cat="video" data-subj="eng" data-assigned="1" data-progress="1" data-go="/video/1">
       <img class="thumb" src="img/video.png" alt="" />
       <div class="card-pad">
         <div class="between"><span class="badge badge-frost">影片</span><span class="small muted">04:32</span></div>
@@ -229,7 +254,7 @@
         <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-y">進行中</span><span class="badge badge-y">含本課小測</span></div>
       </div>
     </div>
-    <div class="card mat-card s4" data-cat="quiz" data-assigned="1" data-progress="0" data-go="/quiz/1">
+    <div class="card mat-card s4" data-cat="quiz" data-subj="eng" data-assigned="1" data-progress="0" data-go="/quiz/1">
       <img class="thumb" src="img/quiz.png" alt="" />
       <div class="card-pad">
         <div class="between"><span class="badge badge-y">獨立小測</span><span class="small muted">10 題</span></div>
@@ -237,7 +262,7 @@
         <div class="mat-meta"><span class="badge badge-g">已指派</span><span class="badge badge-frost">僅小測</span></div>
       </div>
     </div>
-    <div class="card mat-card s4" data-cat="reading" data-assigned="0" data-progress="0" data-go="/article/1">
+    <div class="card mat-card s4" data-cat="reading" data-subj="eng" data-assigned="0" data-progress="0" data-go="/article/1">
       <img class="thumb" src="img/hero-continue.png" alt="" />
       <div class="card-pad">
         <div class="between"><span class="badge badge-p">閱讀</span><span class="small muted">選讀</span></div>
@@ -245,7 +270,7 @@
         <div class="mat-meta"><span class="badge badge-frost">圖書館</span></div>
       </div>
     </div>
-    <div class="card mat-card s4" data-cat="vocab" data-assigned="1" data-progress="0" data-go="/resource/vocab">
+    <div class="card mat-card s4" data-cat="vocab" data-subj="eng" data-assigned="1" data-progress="0" data-go="/resource/vocab">
       <img class="thumb" src="img/vocab.png" alt="" />
       <div class="card-pad">
         <div class="between"><span class="badge badge-frost">生字</span><span class="small muted">8 詞</span></div>
@@ -766,8 +791,8 @@
     <div class="bento">
       <div class="card s8 card-pad">
         <div class="sec-title">科目瀏覽 · 唯讀</div>
-        <p class="small muted mb12">一班老師可瀏覽已上架教材，不可編輯上架或指派。</p>
-        <button type="button" class="btn btn-primary btn-sm" data-go="/subject/eng">開啟科目瀏覽 →</button>
+        <p class="small muted mb12">一班老師可瀏覽全校科目與教材，不可編輯、建立或發佈。</p>
+        <button type="button" class="btn btn-primary btn-sm" data-go="/subject">開啟科目瀏覽 →</button>
       </div>
       <div class="card s4">
         <img src="img/subj-eng.png" alt="" style="height:100px;width:100%;object-fit:cover" />
@@ -889,7 +914,7 @@
     </div>
     <div class="row gap8">
       <button type="button" class="btn btn-ghost btn-sm" id="btnSlash">／ Slash 選單</button>
-      <button type="button" class="btn btn-primary btn-sm" id="btnPublish">發佈上架</button>
+      <button type="button" class="btn btn-primary btn-sm js-need-write" id="btnPublish">發佈上架</button>
     </div>
   </div>
   <div class="callout mb12">
@@ -961,7 +986,7 @@
       <div class="field"><label>封面</label>
         <img src="img/login-hero.png" alt="" style="border-radius:8px;height:72px;width:100%;object-fit:cover" />
       </div>
-      <button type="button" class="btn btn-outline btn-sm" id="btnSaveDraft" style="width:100%;justify-content:center">儲存草稿</button>
+      <button type="button" class="btn btn-outline btn-sm js-need-write" id="btnSaveDraft" style="width:100%;justify-content:center">儲存草稿</button>
     </aside>
   </div>
 </section>
@@ -1069,17 +1094,17 @@
   <div class="card">
     <div class="table-wrap">
       <table class="report" id="userTable">
-        <thead><tr><th>姓名</th><th>帳號</th><th>角色／職務</th><th>班／級／科</th><th>狀態</th></tr></thead>
+        <thead><tr><th>姓名</th><th>帳號</th><th>角色／職務</th><th>班／級／科</th><th>狀態</th><th></th></tr></thead>
         <tbody id="userBody">
-          <tr data-utab-row="students"><td>陳曉晴</td><td>s24012</td><td>學生</td><td>5A</td><td><span class="badge badge-g">啟用</span></td></tr>
-          <tr data-utab-row="students"><td>黃子軒</td><td>s24018</td><td>學生</td><td>5A</td><td><span class="badge badge-g">啟用</span></td></tr>
-          <tr data-utab-row="students"><td>林凱婷</td><td>s24021</td><td>學生</td><td>5A</td><td><span class="badge badge-y">暫停</span></td></tr>
-          <tr data-utab-row="teachers" class="hidden"><td>王老師</td><td>t.wang</td><td>老師 · 班主任</td><td>5A</td><td><span class="badge badge-g">啟用</span></td></tr>
-          <tr data-utab-row="teachers" class="hidden"><td>李老師</td><td>t.lee</td><td>老師 · 級主任</td><td>五年級</td><td><span class="badge badge-g">啟用</span></td></tr>
-          <tr data-utab-row="teachers" class="hidden"><td>陳老師</td><td>t.chan</td><td>老師 · 科主任</td><td>English</td><td><span class="badge badge-g">啟用</span></td></tr>
-          <tr data-utab-row="teachers" class="hidden"><td>張老師</td><td>t.cheung</td><td>老師 · 班主任＋科主任</td><td>4B · 數學</td><td><span class="badge badge-frost">兼任</span></td></tr>
-          <tr data-utab-row="admins" class="hidden"><td>系統管理員</td><td>admin</td><td>Admin</td><td>—</td><td><span class="badge badge-g">啟用</span></td></tr>
-          <tr data-utab-row="admins" class="hidden"><td>IT 支援</td><td>it.support</td><td>Admin</td><td>—</td><td><span class="badge badge-g">啟用</span></td></tr>
+          <tr data-utab-row="students"><td>陳曉晴</td><td>s24012</td><td>學生</td><td>5A</td><td><span class="badge badge-g">啟用</span></td><td></td></tr>
+          <tr data-utab-row="students"><td>黃子軒</td><td>s24018</td><td>學生</td><td>5A</td><td><span class="badge badge-g">啟用</span></td><td></td></tr>
+          <tr data-utab-row="students"><td>林凱婷</td><td>s24021</td><td>學生</td><td>5A</td><td><span class="badge badge-y">暫停</span></td><td></td></tr>
+          <tr data-utab-row="teachers" class="hidden"><td>王老師</td><td>t.wang</td><td>老師 · 班主任</td><td>5A</td><td><span class="badge badge-g">啟用</span></td><td></td></tr>
+          <tr data-utab-row="teachers" class="hidden"><td>李老師</td><td>t.lee</td><td>老師 · 一班老師</td><td>English</td><td><span class="badge badge-g">啟用</span></td><td></td></tr>
+          <tr data-utab-row="teachers" class="hidden"><td>陳老師</td><td>t.chan</td><td>老師 · 科主任</td><td>English</td><td><span class="badge badge-g">啟用</span></td><td></td></tr>
+          <tr data-utab-row="teachers" class="hidden"><td>張老師</td><td>t.cheung</td><td>老師 · 班主任＋科主任</td><td>4B · 數學</td><td><span class="badge badge-frost">兼任</span></td><td></td></tr>
+          <tr data-utab-row="admins" class="hidden"><td>系統管理員</td><td>admin</td><td>Admin</td><td>—</td><td><span class="badge badge-g">啟用</span></td><td></td></tr>
+          <tr data-utab-row="admins" class="hidden"><td>IT 支援</td><td>it.support</td><td>Admin</td><td>—</td><td><span class="badge badge-g">啟用</span></td><td></td></tr>
         </tbody>
       </table>
     </div>
@@ -1280,6 +1305,32 @@
   <div class="modal-foot">
     <button type="button" class="btn btn-ghost btn-sm" id="insertModalCancel">取消</button>
     <button type="button" class="btn btn-primary btn-sm" id="insertModalConfirm">確認插入</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="userModalBg" hidden></div>
+<div class="modal" id="userModal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle" hidden>
+  <div class="modal-head">
+    <div class="h2" id="userModalTitle">新增用戶</div>
+    <button type="button" class="btn btn-ghost btn-sm" id="userModalClose" aria-label="關閉">✕</button>
+  </div>
+  <div class="modal-body">
+    <div id="userModalCreate">
+      <div class="field"><label>姓名</label><input id="umName" autocomplete="name" /></div>
+      <div class="field"><label>帳號</label><input id="umUser" autocomplete="username" /></div>
+      <div class="field"><label>角色</label>
+        <select id="umRole">
+          <option value="student">學生</option>
+          <option value="teacher">老師</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin:0"><label id="umPassLbl">密碼</label><input id="umPass" type="password" autocomplete="new-password" /></div>
+  </div>
+  <div class="modal-foot">
+    <button type="button" class="btn btn-ghost btn-sm" id="userModalCancel">取消</button>
+    <button type="button" class="btn btn-primary btn-sm" id="userModalConfirm">確認</button>
   </div>
 </div>
 

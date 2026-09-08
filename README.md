@@ -41,9 +41,9 @@ Nav follows the logged-in account (`role` + `teacher_subrole`). There is no head
 | Role | Nav |
 | --- | --- |
 | Admin | 總覽／用戶／班級／科目／使用量／SSO 設定／登出 |
-| 科主任 (`subject_head`) | 總覽／本科資源／編輯上架／指派／登出 |
-| 班主任 (`class_teacher`) | 總覽／本班進度／指派／登出 |
-| 一班老師 (`subject_teacher`) | 總覽／科目瀏覽／登出 |
+| 科主任 (`subject_head`) | 總覽／科目瀏覽／本科資源／編輯上架／指派／登出 |
+| 班主任 (`class_teacher`) | 總覽／科目瀏覽／本班進度／指派／登出 |
+| 一班老師 (`subject_teacher`) | 總覽／科目瀏覽（全校科目＋教材，唯讀）／登出 |
 | 學生 | 首頁／科目／我的進度／登出 |
 
 ## SSO config (Frontend)
@@ -95,4 +95,4 @@ Open the printed localhost URL (hash routes: `#/login`).
 ## Gaps vs prototype chrome
 
 - OAuth callback is a follow-up: login SSO buttons toast「設定未完整」and do not mint a session.
-- Canonical article/video/vocab/quiz pages keep proto markup (seed content matches). New editor publishes show up on the English subject grid.
+- Canonical article/video/vocab/quiz pages keep proto markup (seed content matches). The library (`#/subject`) lists **all subjects** with a picker; `#/subject/:slug` filters. Write buttons stay hidden for 一班老師／班主任.
