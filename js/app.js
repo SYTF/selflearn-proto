@@ -525,6 +525,8 @@
 
     grid.querySelectorAll('.mat-card').forEach(card => {
       const catOk = cat === 'all' || card.dataset.cat === cat;
+      const slug = subjectSlugFromRoute(currentRoute);
+      const subjOk = !slug || !card.dataset.subj || card.dataset.subj === slug;
       const assigned = card.dataset.assigned === '1';
       const inProg = card.dataset.progress === '1';
       let statusOk = true;
@@ -539,7 +541,7 @@
       } else if (progressOn) {
         statusOk = inProg;
       }
-      const show = catOk && statusOk;
+      const show = catOk && statusOk && subjOk;
       card.style.display = show ? '' : 'none';
       if (show) visible++;
     });

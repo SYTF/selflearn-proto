@@ -235,7 +235,7 @@
     const vis = document.getElementById('edVisibility');
     const subject = subjects.find((s) => sel && String(sel.value) === String(s.id))
       || subjects.find((s) => sel && sel.value && String(sel.value).indexOf(s.name) !== -1)
-      || subjects.find((s) => s.slug === 'eng');
+      || subjects[0];
     const catVal = cat ? cat.value : '閱讀 Reading';
     let category = 'reading';
     if (/生字|Vocab/i.test(catVal)) category = 'vocab';
@@ -540,16 +540,14 @@
         try {
           const sub = await api('subjects');
           subjects = sub.subjects || [];
-          fillSubjectPicker();
         } catch (e) { /* proto chips remain */ }
-      } else {
-        fillSubjectPicker();
       }
-      const path = slug ? 'resources?subject=' + encodeURIComponent(slug) : 'resources';
-      const data = await api(path);
+      fillSubjectPicker();
+      const data = await api('resources');
       const grid = document.getElementById('matGrid');
       if (!grid) return;
-      const list = data.resources || [];
+      let list = data.resources || [];
+      if (slug) list = list.filter((r) => r.subject_slug === slug);
       if (P() && P().applyWriteGates) P().applyWriteGates();
       grid.innerHTML = list.map((r) => {
         const assigned = r.is_assigned ? '1' : '0';
@@ -563,7 +561,7 @@
         const label = { vocab: '生字', reading: '閱讀', video: '影片', quiz: '獨立小測', article: '閱讀' }[catOf(r)] || '教材';
         const badgeCls = catOf(r) === 'quiz' ? 'badge-y' : catOf(r) === 'reading' || catOf(r) === 'article' ? 'badge-p' : 'badge-frost';
         const subj = (!slug && r.subject_name) ? `<div class="small muted mt8">${r.subject_name}</div>` : '';
-        return `<div class="card mat-card s4" data-cat="${catOf(r)}" data-assigned="${assigned}" data-progress="${progress}" data-go="${r.route}">
+        return `<div class="card mat-card s4" data-cat="${catOf(r)}" data-subj="${r.subject_slug || ''}" data-assigned="${assigned}" data-progress="${progress}" data-go="${r.route}">
           <img class="thumb" src="${cover}" alt="" />
           <div class="card-pad">
             <div class="between"><span class="badge ${badgeCls}">${label}</span><span class="small muted">${r.duration_label || ''}</span></div>
@@ -574,7 +572,9 @@
         </div>`;
       }).join('');
       if (P().applySubjectFilters) P().applySubjectFilters();
-    } catch (e) { /* keep proto cards */ }
+    } catch (e) {
+      if (P().applySubjectFilters) P().applySubjectFilters();
+    }
   }
 
   async function hydrateStudentHome() {
